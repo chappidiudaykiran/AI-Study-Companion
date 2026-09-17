@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen } from 'lucide-react';
+import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, LayoutDashboard } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
 import api from '../api/client.js';
 
@@ -18,7 +18,7 @@ export default function Project() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const [project, setProject] = useState(null);
-  const [tab, setTab] = useState(searchParams.get('tab') || 'materials');
+  const [tab, setTab] = useState(searchParams.get('tab') || 'overview');
   const [file, setFile] = useState(null);
   const [matStatus, setMatStatus] = useState('');
   const [q, setQ] = useState('');
@@ -126,6 +126,18 @@ export default function Project() {
             <div className="card !p-3 lg:sticky lg:top-20">
               <p className="label !mb-2 px-2">Learning path</p>
               <nav className="flex gap-2 overflow-x-auto lg:flex-col">
+                <button
+                  onClick={() => setTab('overview')}
+                  className={`flex min-w-[180px] items-start gap-3 rounded-xl border p-3 text-left transition lg:min-w-0 ${tab === 'overview' ? 'border-accent bg-accent/5' : 'border-transparent hover:bg-surface'}`}
+                >
+                  <span className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${tab === 'overview' ? 'bg-accent text-white' : 'bg-surface text-text2'}`}>
+                    <LayoutDashboard size={14} />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold">Overview</span>
+                    <span className="block text-xs text-text3">Progress + next step</span>
+                  </span>
+                </button>
                 {STEPS.map((s) => {
                   const active = tab === s.id;
                   const isDone = done[s.id];
@@ -167,6 +179,49 @@ export default function Project() {
               <div className="card"><p className="label">Avg score</p><p className="font-heading text-3xl font-extrabold">{analytics?.avgScore ?? 0}%</p></div>
               <div className="card"><p className="label">Current step</p><p className="font-heading text-lg font-bold">{STEPS.find((s) => s.id === tab)?.label}</p></div>
             </div>
+
+            {tab === 'overview' && (
+              <div className="mt-4 space-y-4">
+                <div className="card fade-up">
+                  <h2 className="font-heading text-lg font-bold">Where you stand</h2>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                    <div><p className="label">Avg mastery</p><p className="font-heading text-2xl font-extrabold">{avg}%</p></div>
+                    <div><p className="label">Quiz attempts</p><p className="font-heading text-2xl font-extrabold">{analytics?.attempts ?? 0}</p></div>
+                    <div><p className="label">Avg score</p><p className="font-heading text-2xl font-extrabold">{analytics?.avgScore ?? 0}%</p></div>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="card">
+                    <h3 className="font-heading font-bold">Important concepts</h3>
+                    <div className="mt-2 space-y-1 text-sm">
+                      {mastery.slice().sort((a, b) => a.score - b.score).slice(0, 3).map((m) => (
+                        <p key={m.concept}>{m.concept}: <b>{m.score}%</b></p>
+                      ))}
+                      {!mastery.length && <p className="text-sm text-text3">No concepts yet — upload material.</p>}
+                    </div>
+                    <button onClick={() => setTab('quiz')} className="btn btn-outline mt-2 !py-1.5 !text-xs">Practice → Quiz</button>
+                  </div>
+                  <div className="card">
+                    <h3 className="font-heading font-bold">Recent activity</h3>
+                    <div className="mt-2 space-y-1 text-xs text-text2">
+                      {(analytics?.events || []).slice(0, 5).map((e, i) => (
+                        <p key={i}><b>{e.type}</b> · {new Date(e.at || e.createdAt).toLocaleString()}</p>
+                      ))}
+                      {!(analytics?.events || []).length && <p className="text-sm text-text3">Nothing yet.</p>}
+                    </div>
+                  </div>
+                </div>
+                <div className="card">
+                  <h3 className="font-heading font-bold">Recommended next step</h3>
+                  <p className="alert alert-success mt-2">{rec?.text || 'Upload material, then ask the Tutor.'}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setTab('materials')} className="btn btn-outline !py-1.5 !text-xs">Materials</button>
+                    <button onClick={() => setTab('tutor')} className="btn btn-outline !py-1.5 !text-xs">Tutor</button>
+                    <button onClick={() => setTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Quiz</button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {tab === 'materials' && (
               <form onSubmit={upload} className="card fade-up mt-4">

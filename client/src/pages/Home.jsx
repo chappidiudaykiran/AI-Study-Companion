@@ -47,7 +47,45 @@ export default function Home() {
             <div className="card"><p className="label">Quiz attempts</p><p className="font-heading text-3xl font-extrabold">{global.attempts}</p></div>
             <div className="card"><p className="label">Average score</p><p className="font-heading text-3xl font-extrabold">{global.avgScore}%</p></div>
             <div className="card"><p className="label">Spaces</p><p className="font-heading text-3xl font-extrabold">{spaces.length}</p></div>
-            <div className="card"><p className="label">Next</p><p className="text-sm text-text2">Open a project → Materials → Tutor</p></div>
+            <div className="card"><p className="label">Concepts needing attention</p><p className="font-heading text-3xl font-extrabold">{global.attention?.length ?? 0}</p></div>
+          </div>
+        )}
+
+        {global && ((global.recentProjects || []).length > 0 || (global.attention || []).length > 0 || global.nextAction) && (
+          <div className="mt-5 grid gap-5 md:grid-cols-3">
+            <div className="card fade-up-3">
+              <h2 className="font-heading font-bold">Continue learning</h2>
+              <div className="mt-2 space-y-1 text-sm">
+                {(global.recentProjects || []).map((p) => (
+                  <Link key={p.id} to={`/project/${p.id}`} className="block rounded-lg px-2 py-1.5 hover:bg-surface">
+                    <span className="font-semibold text-accent">{p.name}</span>
+                    <span className="block text-xs text-text3">{p.space} — {p.goal}</span>
+                  </Link>
+                ))}
+                {!(global.recentProjects || []).length && <p className="text-sm text-text3">No projects yet.</p>}
+              </div>
+            </div>
+            <div className="card fade-up-3">
+              <h2 className="font-heading font-bold">Needs attention</h2>
+              <div className="mt-2 space-y-1 text-sm">
+                {(global.attention || []).map((a, i) => (
+                  <p key={i} className="rounded-lg bg-bg3 px-2 py-1.5">
+                    <b>{a.concept}</b> {a.score}% · {a.mistakes} mistakes
+                    {a.projectId && <Link to={`/project/${a.projectId}`} className="ml-1 text-accent hover:underline">({a.project})</Link>}
+                  </p>
+                ))}
+                {!(global.attention || []).length && <p className="text-sm text-text3">Nothing weak right now. Take a quiz!</p>}
+              </div>
+            </div>
+            <div className="card fade-up-3">
+              <h2 className="font-heading font-bold">Recommended next step</h2>
+              {global.nextAction ? (
+                <>
+                  <p className="mt-2 text-sm">{global.nextAction.text}</p>
+                  {global.nextAction.projectId && <Link to={`/project/${global.nextAction.projectId}`} className="mt-1 inline-block text-sm text-accent hover:underline">Open {global.nextAction.project} →</Link>}
+                </>
+              ) : <p className="mt-2 text-sm text-text3">Upload material and take a quiz to get recommendations.</p>}
+            </div>
           </div>
         )}
 
@@ -119,6 +157,10 @@ function SpaceCard({ space, reload }) {
             {projects.map((p) => (
               <Link key={p._id} to={`/project/${p._id}`} className="block rounded-lg px-2 py-1.5 text-sm hover:bg-surface">
                 <span className="font-semibold text-accent">{p.name}</span> <span className="text-text2">— {p.goal}</span>
+                <span className="block text-xs text-text3">
+                  {p.masteryAvg !== null && p.masteryAvg !== undefined ? `mastery ${p.masteryAvg}% · ` : 'no mastery yet · '}{p.attempts ?? 0} attempts
+                  {p.weakest && ` · weak: ${p.weakest.concept} (${p.weakest.score}%)`}
+                </span>
               </Link>
             ))}
             {!projects.length && <p className="text-xs text-text3">No projects yet.</p>}
