@@ -6,7 +6,15 @@
 - No auto-generated undisclosed code — all reviewed before commit.
 
 ## AI used BY the final product (runtime)
-- Tutor answers: Gemini 2.5 Flash (`generateText`/`generateStructured`), grounded in project chunks.
-- Embeddings: `text-embedding-004` stored on Chunk, cosine top-k + keyword fallback.
-- Quiz generation + open-ended grading + concept extraction + recommendations: structured Gemini calls.
-- All runtime calls logged to `AiLog` (model, feature, latency, tokens, status) visible in Admin.
+- Provider switch `AI_PROVIDER=gemini|inception` (`aiClient.js` + `inceptionClient.js`):
+  Gemini 2.5 Flash or InceptionLabs Mercury-2.5 — no caller changes.
+- Tutor answers: grounded in project chunks, learner-profile injection (weaknesses,
+  strengths, accuracy), citations, refusal path.
+- Embeddings: `text-embedding-004` stored on Chunk, cosine top-k + keyword fallback
+  (system works with zero AI keys in keyword mode).
+- Quiz generation (parallel) + open-ended grading + concept extraction +
+  recommendations: schema-validated structured calls (Zod, fix-retry once).
+- All runtime calls logged to `AiLog` (model, feature, latency, tokens,
+  cost estimate, retrieval chunk IDs, status) visible in Admin.
+- Costs are estimates (blended per-1M pricing, env-overridable); Inception token
+  counts are provider-reported, others estimated.

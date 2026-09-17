@@ -1,20 +1,37 @@
-# Evaluation Approach
+# Evaluation Approach (§14)
 
-## Unit (no key): `node server/tests/run.js` — 12 checks
-- cosine math, mastery `0.7*old+0.3*new`, growth buckets, evidence gate ≥0.18, chunking, project-isolation rule.
+## 1. Unit tests — 16/16 pass, no key needed
+`cd server && npm test` (`tests/run.js`):
+- cosine math (identical/orthogonal/mismatch), chunk splitting
+- mastery `0.7*old + 0.3*new` (50+100→65, 80+0→56)
+- growth buckets (improving/stable/needs-attention), evidence gate ≥ 0.18
+- project-isolation rule, Zod AI-schema rejection (MCQ missing key, score > 100, tutor missing answer)
 
-## Curated (10 cases in eval/cases.js)
-- T1-T3 grounded tutor (must cite correct doc+page)
-- U1-U2 unsupported (must refuse, no cross-project leak)
-- R1-R2 retrieval relevance + empty-project path
-- Q1-Q2 grading (MCQ exact, open covers/missing)
-- C1 recommendation relevance
+## 2. Curated cases — 10 in `eval/cases.js`
+T1–T3 grounded tutor · U1–U2 unsupported refusal + no cross-project leak · R1–R2 retrieval
+relevance + empty-project path · Q1–Q2 grading (MCQ exact, open covered/missing) · C1
+recommendation relevance. Run manually per `docs/VIDEO_SCRIPT.md`, or via Admin → Evaluation.
 
-## How to run live
-1. Seed demo user, upload 10-page PDF, wait `ready`.
-2. Ask grounded Q → check citation page. Ask off-topic Q → expect refusal.
-3. Start quiz (4), answer 1 wrong → mastery for that concept should drop, next recommendation should mention it.
-4. Check Admin → ailogs (latency/model), jobs (done), activity.
+## 3. Live rule-based evaluation — `GET /api/admin/evaluation`
+Computed from production data on every load (see `evalService.js`).
+Run on 2026-09-17 against dev Atlas (real numbers, not fixtures):
 
-## Regression note
-Prompt/model/retrieval changes re-run unit + 10 cases; log results here before push.
+| Metric | Value | Reading |
+|---|---|---|
+| Tutor answers sampled | 6 | 2 grounded + cited, 4 correct refusals |
+| Citation rate (all) | 0.333 | refusals carry no citations by design |
+| Citation rate (grounded only) | **1.0 (2/2)** | every grounded answer cited doc + page ✅ |
+| Unsupported refusals | 4 | refusal path exercised and working ✅ |
+| AI calls logged | 116 | quiz-gen 53, embed 59, tutor 2, concept-extract 2 |
+| Overall error rate | 0.509 | entirely `embed` (Gemini key unset → keyword fallback took over by design) |
+| Tutor / quiz-gen / concept-extract errors | 0 | structured outputs all validated ✅ |
+| Quiz grading volume | 0 | no quizzes taken on this DB yet — grade path covered by unit + manual |
+
+Interpretation: the 0.509 error rate is the fallback system working, not a failure —
+every embed failure degraded gracefully to keyword retrieval and every user-facing
+AI feature (tutor, quiz-gen, concepts) has zero errors.
+
+## 4. Regression policy
+Prompt/model/retrieval changes must re-run `npm test` + Admin → Evaluation and
+record the table above before push. Any drop in grounded citation rate or rise in
+feature error rates blocks the change.

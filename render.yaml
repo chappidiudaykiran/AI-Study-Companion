@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ai-study-companion-server
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_URL
+        sync: false
+      - key: AI_PROVIDER
+        value: inception
+      - key: INCEPTION_API_KEY
+        sync: false
+      - key: INCEPTION_MODEL
+        value: mercury-2.5
+      - key: GEMINI_API_KEY
+        sync: false

@@ -1,10 +1,17 @@
 const Mastery = require('../models/Mastery');
+const Attempt = require('../models/Attempt');
 const Recommendation = require('../models/Recommendation');
 const { generateStructured } = require('./aiClient');
 const { recommendSchema } = require('./aiSchemas');
 const { logEvent } = require('./eventService');
 
 async function buildRecommendation({ projectId, userId, project }) {
+  // Perf (§15): reuse the latest recommendation when no new evidence arrived
+  const last = await Recommendation.findOne({ project: projectId, user: userId }).sort({ createdAt: -1 }).lean();
+  if (last) {
+    const newer = await Attempt.countDocuments({ project: projectId, user: userId, createdAt: { $gt: last.createdAt } });
+    if (newer === 0) return last;
+  }
   const mastery = await Mastery.find({ project: projectId, user: userId }).sort({ score: 1 }).lean();
   if (!mastery.length) {
     return await Recommendation.create({
@@ -15,9 +22,6 @@ async function buildRecommendation({ projectId, userId, project }) {
   }
   const weakest = mastery.slice(0, 2);
   const weakStr = weakest.map((w) => `${w.concept} (${w.score}%, mistakes:${w.mistakes})`).join(', ');
-
-  // avoid repeat: check last rec
-  const last = await Recommendation.findOne({ project: projectId, user: userId }).sort({ createdAt: -1 }).lean();
 
   let text = `Focus on ${weakest[0].concept} (${weakest[0].score}%). Review related material and take a short 3-question quiz.`;
   try {
