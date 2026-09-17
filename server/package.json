@@ -4,7 +4,9 @@
   "type": "commonjs",
   "scripts": {
     "dev": "node --watch server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/run.js",
+    "seed": "node seed.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.15.0",
