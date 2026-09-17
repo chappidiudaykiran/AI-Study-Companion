@@ -17,8 +17,8 @@ app.get('/health', (req, res) => {
 
 // Routes (enabled incrementally)
 app.use('/api/auth', require('./src/routes/auth'));
-// app.use('/api/spaces', require('./src/routes/spaces'));
-// app.use('/api/projects', require('./src/routes/projects'));
+app.use('/api/spaces', require('./src/routes/spaces'));
+app.use('/api/projects', require('./src/routes/projects'));
 
 app.use((err, req, res, next) => {
   console.error(err);
