@@ -22,6 +22,8 @@ app.use('/api/projects', require('./src/routes/projects'));
 app.use('/api', require('./src/routes/materials'));
 app.use('/api', require('./src/routes/tutor'));
 app.use('/api', require('./src/routes/quiz'));
+app.use('/api', require('./src/routes/analytics'));
+app.use('/api/admin', require('./src/routes/admin'));
 
 app.use((err, req, res, next) => {
   console.error(err);
