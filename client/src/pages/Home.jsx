@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FolderOpen, Target, UploadCloud, MessagesSquare, ListChecks, TrendingUp, ArrowRight, Plus } from 'lucide-react';
 import api from '../api/client.js';
+
+const STEPS = [
+  { icon: FolderOpen, title: '1. Space', desc: 'Broad area (e.g. ML)' },
+  { icon: Target, title: '2. Project', desc: 'Goal-focused workspace' },
+  { icon: UploadCloud, title: '3. Material', desc: 'Upload PDF, auto-processed' },
+  { icon: MessagesSquare, title: '4. Tutor', desc: 'Ask, get cited answers' },
+  { icon: ListChecks, title: '5. Quiz', desc: 'Adaptive MCQ + open' },
+  { icon: TrendingUp, title: '6. Growth', desc: 'Mastery + next step' },
+];
 
 export default function Home() {
   const [spaces, setSpaces] = useState([]);
@@ -25,19 +35,50 @@ export default function Home() {
   }
 
   return (
-    <div style={{ fontFamily: 'system-ui', padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <h1>AI Study Companion</h1>
-      <p><Link to="/login">Login</Link> | <Link to="/admin">Admin</Link> | <button onClick={() => { localStorage.clear(); window.location.reload(); }}>Logout</button></p>
-      {global && <p>Continue learning: {global.attempts} attempts, avg {global.avgScore}%</p>}
-      <h2>Spaces</h2>
-      <form onSubmit={create} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <input placeholder="Space name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <input placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <button>Create space</button>
-      </form>
-      {spaces.map((s) => (
-        <SpaceCard key={s._id} space={s} reload={load} />
-      ))}
+    <div className="theme-dashboard min-h-screen pb-16">
+      <div className="container">
+        <div className="page-header fade-up">
+          <h1 className="page-title">What are you learning <span className="hero-gradient-text">today?</span></h1>
+          <p className="page-subtitle">Create a space → project → upload PDF → chat with tutor → quiz → track mastery. Everything stays in its project.</p>
+        </div>
+
+        {global && (
+          <div className="grid-4 fade-up-2">
+            <div className="card"><p className="label">Quiz attempts</p><p className="font-heading text-3xl font-extrabold">{global.attempts}</p></div>
+            <div className="card"><p className="label">Average score</p><p className="font-heading text-3xl font-extrabold">{global.avgScore}%</p></div>
+            <div className="card"><p className="label">Spaces</p><p className="font-heading text-3xl font-extrabold">{spaces.length}</p></div>
+            <div className="card"><p className="label">Next</p><p className="text-sm text-text2">Open a project → Materials → Tutor</p></div>
+          </div>
+        )}
+
+        <div className="card fade-up-3 mt-5">
+          <h2 className="font-heading text-lg font-bold">How it works — no searching needed</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {STEPS.map((s) => (
+              <div key={s.title} className="rounded-xl border border-border bg-bg3 p-3">
+                <s.icon size={18} className="text-accent" />
+                <p className="mt-1 text-sm font-semibold">{s.title}</p>
+                <p className="text-xs text-text2">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card fade-up-4 mt-5">
+          <h2 className="font-heading text-lg font-bold">Create a space</h2>
+          <form onSubmit={create} className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input className="input flex-1" placeholder="e.g. Machine Learning" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <input className="input flex-1" placeholder="Short description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <button className="btn btn-primary"><Plus size={16} /> Create</button>
+          </form>
+        </div>
+
+        <h2 className="mb-3 mt-8 font-heading text-xl font-bold">Your spaces</h2>
+        {!spaces.length && <div className="card text-sm text-text2">No spaces yet — create one above to begin.</div>}
+        <div className="grid-3">
+          {spaces.map((s) => <SpaceCard key={s._id} space={s} reload={load} />)}
+        </div>
+      </div>
     </div>
   );
 }
@@ -45,7 +86,7 @@ export default function Home() {
 function SpaceCard({ space, reload }) {
   const [projects, setProjects] = useState([]);
   const [show, setShow] = useState(false);
-  const [pform, setPform] = useState({ name: '', description: '', goal: '' });
+  const [pform, setPform] = useState({ name: '', goal: '' });
 
   async function open() {
     setShow(!show);
@@ -56,26 +97,33 @@ function SpaceCard({ space, reload }) {
   }
   async function createProject(e) {
     e.preventDefault();
-    await api.post('/api/projects', { spaceId: space._id, ...pform });
+    await api.post('/api/projects', { spaceId: space._id, name: pform.name, description: '', goal: pform.goal });
     const { data } = await api.get(`/api/spaces/${space._id}`);
     setProjects(data.projects || []);
-    setPform({ name: '', description: '', goal: '' });
+    setPform({ name: '', goal: '' });
     reload();
   }
   return (
-    <div style={{ border: '1px solid #ddd', padding: 12, marginBottom: 8 }}>
-      <b>{space.name}</b> — {space.description} <button onClick={open}>{show ? 'Hide' : 'Open'}</button>
+    <div className="card">
+      <p className="font-heading text-lg font-bold">{space.name}</p>
+      <p className="text-sm text-text2">{space.description || 'No description'}</p>
+      <button onClick={open} className="btn btn-outline mt-3 !px-3 !py-1.5">{show ? 'Hide projects' : 'Open projects'} <ArrowRight size={14} /></button>
       {show && (
-        <>
-          <form onSubmit={createProject} style={{ display: 'flex', gap: 6, margin: '8px 0', flexWrap: 'wrap' }}>
-            <input placeholder="Project name" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required />
-            <input placeholder="Goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required style={{ minWidth: 220 }} />
-            <button>Create project</button>
+        <div className="mt-3 border-t border-border pt-3">
+          <form onSubmit={createProject} className="grid gap-2">
+            <input className="input" placeholder="Project name (e.g. Neural Nets)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required />
+            <input className="input" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required />
+            <button className="btn btn-primary !py-2">Create project</button>
           </form>
-          {projects.map((p) => (
-            <div key={p._id}><Link to={`/project/${p._id}`}>{p.name}</Link> — {p.goal}</div>
-          ))}
-        </>
+          <div className="mt-2 space-y-1">
+            {projects.map((p) => (
+              <Link key={p._id} to={`/project/${p._id}`} className="block rounded-lg px-2 py-1.5 text-sm hover:bg-surface">
+                <span className="font-semibold text-accent">{p.name}</span> <span className="text-text2">— {p.goal}</span>
+              </Link>
+            ))}
+            {!projects.length && <p className="text-xs text-text3">No projects yet.</p>}
+          </div>
+        </div>
       )}
     </div>
   );
