@@ -15,8 +15,8 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'ai-study-companion-server', time: new Date().toISOString() });
 });
 
-// Day 1+ routes (stubs — implemented next commits)
-// app.use('/api/auth', require('./src/routes/auth'));
+// Routes (enabled incrementally)
+app.use('/api/auth', require('./src/routes/auth'));
 // app.use('/api/spaces', require('./src/routes/spaces'));
 // app.use('/api/projects', require('./src/routes/projects'));
 
