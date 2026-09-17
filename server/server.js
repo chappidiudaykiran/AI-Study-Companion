@@ -19,6 +19,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/spaces', require('./src/routes/spaces'));
 app.use('/api/projects', require('./src/routes/projects'));
+app.use('/api', require('./src/routes/materials'));
 
 app.use((err, req, res, next) => {
   console.error(err);
@@ -26,7 +27,13 @@ app.use((err, req, res, next) => {
 });
 
 connectDB(process.env.MONGO_URI)
-  .then(() => app.listen(PORT, () => console.log(`Server on :${PORT}`)))
+  .then(() => {
+    try {
+      const { startWorker } = require('./src/services/jobWorker');
+      startWorker();
+    } catch (e) { console.error('worker failed:', e.message); }
+    app.listen(PORT, () => console.log(`Server on :${PORT}`));
+  })
   .catch((e) => {
     console.error('DB failed:', e.message);
     // still listen for health check in Day 0 so deploy can be verified
