@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Slim, subtle scrollbars app-wide (no chunky browser bar) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border2);
+}
+
 @layer base {
   :root {
     --color-bg: #f5f8ff;
