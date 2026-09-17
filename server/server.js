@@ -20,6 +20,7 @@ app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/spaces', require('./src/routes/spaces'));
 app.use('/api/projects', require('./src/routes/projects'));
 app.use('/api', require('./src/routes/materials'));
+app.use('/api', require('./src/routes/tutor'));
 
 app.use((err, req, res, next) => {
   console.error(err);
