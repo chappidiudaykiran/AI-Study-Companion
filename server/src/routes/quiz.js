@@ -9,6 +9,9 @@ const Question = require('../models/Question');
 const Attempt = require('../models/Attempt');
 const Concept = require('../models/Concept');
 const Mastery = require('../models/Mastery');
+const Project = require('../models/Project');
+const Recommendation = require('../models/Recommendation');
+const { updateAfterAttempt } = require('../services/contextService');
 const { logEvent } = require('../services/eventService');
 
 const router = express.Router();
@@ -59,6 +62,9 @@ router.post('/quiz/:questionId/answer', async (req, res, next) => {
     const { answer = '' } = req.body || {};
     const q = await Question.findById(req.params.questionId);
     if (!q) return res.status(404).json({ error: 'Question not found' });
+    // authorization: question's project must belong to the caller
+    const proj = await Project.findOne({ _id: q.project, user: req.user._id }).lean();
+    if (!proj) return res.status(404).json({ error: 'Question not found' });
 
     let score = 0;
     let feedback = { covered: [], missing: [], text: '' };
@@ -80,9 +86,27 @@ router.post('/quiz/:questionId/answer', async (req, res, next) => {
       }
     }
 
-    await Attempt.create({ project: q.project, question: q._id, user: req.user._id, userAnswer: answer, score, feedback });
+    const attempt = await Attempt.create({ project: q.project, question: q._id, user: req.user._id, userAnswer: answer, score, feedback });
     const mastery = await updateMastery({ projectId: q.project, userId: req.user._id, concept: q.concept, score });
     await logEvent({ user: req.user._id, project: q.project, type: 'quiz.answered', payload: { score, concept: q.concept } });
+    await logEvent({ user: req.user._id, project: q.project, type: 'assessment.completed', payload: { questionId: String(q._id), score, concept: q.concept }, key: `assess:${attempt._id}` });
+    await logEvent({ user: req.user._id, project: q.project, type: 'mastery.updated', payload: { concept: mastery.concept, score: mastery.score } });
+
+    // Repeated-mistake workflow (§13): 2nd+ mistake on a concept → targeted recommendation
+    if (score < 60 && (mastery.mistakes || 0) >= 2) {
+      const reason = `mistake-pattern:${q.concept}`;
+      const existing = await Recommendation.findOne({ project: q.project, user: req.user._id, reason, status: 'active' }).lean();
+      if (!existing) {
+        await Recommendation.create({
+          project: q.project,
+          user: req.user._id,
+          text: `You missed ${q.concept} ${mastery.mistakes} times. Re-read its material section, then ask the Tutor for one worked example before retrying.`,
+          reason,
+        });
+        await logEvent({ user: req.user._id, project: q.project, type: 'recommendation.created', payload: { reason } });
+      }
+    }
+    await updateAfterAttempt(q.project, req.user._id);
 
     res.json({ score, feedback, mastery: { concept: mastery.concept, score: mastery.score } });
   } catch (e) { next(e); }
