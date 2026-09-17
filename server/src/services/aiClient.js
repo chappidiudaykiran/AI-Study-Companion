@@ -10,6 +10,14 @@ const MODEL = PROVIDER === 'inception'
 const EMBED_MODEL = process.env.GEMINI_EMBED_MODEL || 'text-embedding-004';
 const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 30000;
 
+// Approximate blended price per 1M tokens (input+output avg). Override via
+// AI_PRICE_PER_1M env. Treat Admin cost figures as estimates, not billing.
+const PRICING_PER_1M = {
+  'gemini-2.5-flash': 1.0,
+  'mercury-2.5': 0.5,
+};
+const DEFAULT_PRICE_PER_1M = Number(process.env.AI_PRICE_PER_1M) || null;
+
 // Timeout guard (§15): no AI call may hang forever (previously caused stuck jobs)
 function withTimeout(promise, ms = AI_TIMEOUT_MS, label = 'AI call') {
   let timer;
@@ -26,9 +34,10 @@ function client() {
 
 async function logUsage({ user, project, feature, latency_ms, tokens = 0, status = 'ok', error = '', retrievalIds = [] }) {
   try {
+    const price = DEFAULT_PRICE_PER_1M ?? PRICING_PER_1M[MODEL] ?? 0.5;
     await AiLog.create({
       user, project, feature, model: MODEL, latency_ms, tokens,
-      cost_est: 0, status, error, retrievalIds,
+      cost_est: +((tokens / 1e6) * price).toFixed(6), status, error, retrievalIds,
     });
   } catch (e) { console.error('ailog failed', e.message); }
 }
@@ -38,9 +47,12 @@ async function generateText(prompt, { user = null, project = null, feature = 'tu
   // InceptionLabs path (chat completions API)
   if (PROVIDER === 'inception') {
     try {
-      const inception = require('./inceptionClient');
-      const text = await withTimeout(inception.generateText(prompt), AI_TIMEOUT_MS, `inception:${feature}`);
-      await logUsage({ user, project, feature, latency_ms: Date.now() - t0, tokens: Math.ceil((prompt.length + text.length) / 4), retrievalIds });
+      const { chat } = require('./inceptionClient');
+      const { text, raw } = await withTimeout(chat([{ role: 'user', content: prompt }]), AI_TIMEOUT_MS, `inception:${feature}`);
+      // real provider-reported usage when available; estimate otherwise
+      const usage = raw?.usage || {};
+      const realTokens = usage.total_tokens || Math.ceil((prompt.length + text.length) / 4);
+      await logUsage({ user, project, feature, latency_ms: Date.now() - t0, tokens: realTokens, retrievalIds });
       return text;
     } catch (e) {
       await logUsage({ user, project, feature, latency_ms: Date.now() - t0, status: 'error', error: e.message, retrievalIds });
