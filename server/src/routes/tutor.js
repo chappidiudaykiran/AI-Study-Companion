@@ -4,6 +4,8 @@ const { auth } = require('../middleware/auth');
 const { loadProject } = require('../middleware/ownership');
 const { retrieveEvidence } = require('../services/retrievalService');
 const { generateStructured } = require('../services/aiClient');
+const { tutorSchema } = require('../services/aiSchemas');
+const { aiLimiter } = require('../middleware/rateLimit');
 const { getLearningContext, contextBlock } = require('../services/contextService');
 const Message = require('../models/Message');
 const { logEvent } = require('../services/eventService');
@@ -14,7 +16,7 @@ router.use(auth);
 const askSchema = z.object({ question: z.string().min(3).max(2000) });
 
 // POST /api/projects/:projectId/tutor
-router.post('/projects/:projectId/tutor', loadProject, async (req, res, next) => {
+router.post('/projects/:projectId/tutor', aiLimiter, loadProject, async (req, res, next) => {
   try {
     const { question } = askSchema.parse(req.body);
 
@@ -62,7 +64,7 @@ Schema: {"answer":"...","citations":[{"doc":"...","page":1}],"confidence":0.0-1.
 
     let out;
     try {
-      out = await generateStructured(prompt, { user: req.user._id, project: req.project._id, feature: 'tutor' });
+      out = await generateStructured(prompt, { user: req.user._id, project: req.project._id, feature: 'tutor', retrievalIds: hits.map((h) => h.chunkId) }, tutorSchema);
     } catch (e) {
       return res.status(502).json({ error: 'AI temporarily unavailable, try again' });
     }

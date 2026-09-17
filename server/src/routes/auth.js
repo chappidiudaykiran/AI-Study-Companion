@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { z } = require('zod');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ function sign(user) {
   });
 }
 
-router.post('/register', async (req, res, next) => {
+router.post('/register', authLimiter, async (req, res, next) => {
   try {
     const data = registerSchema.parse(req.body);
     const exists = await User.findOne({ email: data.email });
@@ -33,7 +34,7 @@ router.post('/register', async (req, res, next) => {
   }
 });
 
-router.post('/login', async (req, res, next) => {
+router.post('/login', authLimiter, async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email: (email || '').toLowerCase() });

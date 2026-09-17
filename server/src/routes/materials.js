@@ -6,6 +6,7 @@ const Material = require('../models/Material');
 const Job = require('../models/Job');
 const { auth } = require('../middleware/auth');
 const { loadProject } = require('../middleware/ownership');
+const { uploadLimiter } = require('../middleware/rateLimit');
 const { logEvent } = require('../services/eventService');
 
 const router = express.Router();
@@ -24,7 +25,7 @@ const upload = multer({
 });
 
 // POST /api/projects/:projectId/materials
-router.post('/projects/:projectId/materials', loadProject, upload.single('pdf'), async (req, res, next) => {
+router.post('/projects/:projectId/materials', uploadLimiter, loadProject, upload.single('pdf'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'PDF file required (field: pdf)' });
     const material = await Material.create({

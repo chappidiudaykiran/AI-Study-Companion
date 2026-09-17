@@ -1,10 +1,23 @@
 // Provider abstraction: generateText / generateStructured / embed
-// Uses Gemini 2.5 Flash. Swap to OpenAI by changing this file only.
+// Env AI_PROVIDER=gemini (default) | inception. Swap without touching callers.
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const AiLog = require('../models/AiLog');
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const PROVIDER = (process.env.AI_PROVIDER || 'gemini').toLowerCase();
+const MODEL = PROVIDER === 'inception'
+  ? (process.env.INCEPTION_MODEL || 'mercury-2.5')
+  : (process.env.GEMINI_MODEL || 'gemini-2.5-flash');
 const EMBED_MODEL = process.env.GEMINI_EMBED_MODEL || 'text-embedding-004';
+const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 30000;
+
+// Timeout guard (§15): no AI call may hang forever (previously caused stuck jobs)
+function withTimeout(promise, ms = AI_TIMEOUT_MS, label = 'AI call') {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 function client() {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY missing');
@@ -20,29 +33,51 @@ async function logUsage({ user, project, feature, latency_ms, tokens = 0, status
   } catch (e) { console.error('ailog failed', e.message); }
 }
 
-async function generateText(prompt, { user = null, project = null, feature = 'tutor' } = {}) {
+async function generateText(prompt, { user = null, project = null, feature = 'tutor', retrievalIds = [] } = {}) {
   const t0 = Date.now();
+  // InceptionLabs path (chat completions API)
+  if (PROVIDER === 'inception') {
+    try {
+      const inception = require('./inceptionClient');
+      const text = await withTimeout(inception.generateText(prompt), AI_TIMEOUT_MS, `inception:${feature}`);
+      await logUsage({ user, project, feature, latency_ms: Date.now() - t0, tokens: Math.ceil((prompt.length + text.length) / 4), retrievalIds });
+      return text;
+    } catch (e) {
+      await logUsage({ user, project, feature, latency_ms: Date.now() - t0, status: 'error', error: e.message, retrievalIds });
+      throw e;
+    }
+  }
   try {
     const gen = client().getGenerativeModel({ model: MODEL });
-    const result = await gen.generateContent(prompt);
+    const result = await withTimeout(gen.generateContent(prompt), AI_TIMEOUT_MS, `gemini:${feature}`);
     const text = result.response.text();
-    await logUsage({ user, project, feature, latency_ms: Date.now() - t0, tokens: Math.ceil((prompt.length + text.length) / 4) });
+    await logUsage({ user, project, feature, latency_ms: Date.now() - t0, tokens: Math.ceil((prompt.length + text.length) / 4), retrievalIds });
     return text;
   } catch (e) {
-    await logUsage({ user, project, feature, latency_ms: Date.now() - t0, status: 'error', error: e.message });
+    await logUsage({ user, project, feature, latency_ms: Date.now() - t0, status: 'error', error: e.message, retrievalIds });
     throw e;
   }
 }
 
-async function generateStructured(prompt, { user = null, project = null, feature = 'structured' } = {}) {
-  const raw = await generateText(`${prompt}\n\nReturn ONLY valid JSON, no markdown fences.`, { user, project, feature });
-  const cleaned = raw.replace(/```json|```/g, '').trim();
+function cleanJson(raw) {
+  return String(raw).replace(/```json|```/g, '').trim();
+}
+
+// Structured outputs are schema-validated before persist/use (§8).
+// Pass a Zod schema; invalid output triggers one fix-retry, then throws.
+async function generateStructured(prompt, opts = {}, schema = null) {
+  const { user = null, project = null, feature = 'structured' } = opts;
+  const raw = await generateText(`${prompt}\n\nReturn ONLY valid JSON, no markdown fences.`, opts);
+  const tryParse = (text) => {
+    const parsed = JSON.parse(cleanJson(text));
+    return schema ? schema.parse(parsed) : parsed;
+  };
   try {
-    return JSON.parse(cleaned);
+    return tryParse(raw);
   } catch (e) {
-    // one retry: ask to fix JSON
-    const fixed = await generateText(`Fix this into valid JSON only:\n${cleaned}`, { user, project, feature });
-    return JSON.parse(fixed.replace(/```json|```/g, '').trim());
+    // one retry: ask to fix, then validate again
+    const fixed = await generateText(`Fix this into valid JSON matching the required schema, output JSON only:\n${cleanJson(raw).slice(0, 4000)}`, opts);
+    return tryParse(fixed);
   }
 }
 
@@ -54,7 +89,7 @@ async function embed(texts, { user = null, project = null } = {}) {
     const model = client().getGenerativeModel({ model: EMBED_MODEL });
     const out = [];
     for (const t of texts) {
-      const r = await model.embedContent(t.slice(0, 8000));
+      const r = await withTimeout(model.embedContent(t.slice(0, 8000)), AI_TIMEOUT_MS, 'gemini:embed');
       out.push(r.embedding.values);
     }
     await logUsage({ user, project, feature: 'embed', latency_ms: Date.now() - t0, tokens: Math.ceil(texts.join('').length / 4) });

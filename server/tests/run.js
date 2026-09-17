@@ -39,6 +39,23 @@ t('isolation rule: project filter required', ()=>{
   const query={project:'p1'};
   assert(query.project, 'retrieval must filter projectId');
 });
+t('mcq schema rejects missing answerKey', ()=>{
+  const { mcqSchema } = require('../src/services/aiSchemas');
+  assert.throws(()=>mcqSchema.parse({ stem:'What is X?', options:['A','B'] }));
+});
+t('mcq schema accepts valid output', ()=>{
+  const { mcqSchema } = require('../src/services/aiSchemas');
+  const out = mcqSchema.parse({ stem:'What is X?', options:['A','B','C'], answerKey:'A', difficulty:'easy' });
+  assert(out.stem === 'What is X?');
+});
+t('grade schema clamps score range', ()=>{
+  const { gradeSchema } = require('../src/services/aiSchemas');
+  assert.throws(()=>gradeSchema.parse({ score:150, covered:[], missing:[], feedback:'x' }));
+});
+t('tutor schema requires answer', ()=>{
+  const { tutorSchema } = require('../src/services/aiSchemas');
+  assert.throws(()=>tutorSchema.parse({ citations:[], confidence:0.5 }));
+});
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail?1:0);
