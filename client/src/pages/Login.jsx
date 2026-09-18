@@ -1,22 +1,70 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BrainCircuit, MessagesSquare, ListChecks, TrendingUp, ArrowRight } from 'lucide-react';
+import { BrainCircuit, MessagesSquare, ListChecks, TrendingUp, ArrowRight, Eye, EyeOff, Wand2 } from 'lucide-react';
 import api from '../api/client.js';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validate(form, mode) {
+  const errors = {};
+  if (mode === 'register') {
+    if (!form.name.trim()) errors.name = 'Name is required';
+    else if (form.name.trim().length < 2) errors.name = 'Name needs at least 2 characters';
+    else if (form.name.trim().length > 60) errors.name = 'Name must be under 60 characters';
+  }
+  if (!form.email.trim()) errors.email = 'Email is required';
+  else if (!EMAIL_RE.test(form.email.trim())) errors.email = 'Enter a valid email address';
+  if (!form.password) errors.password = 'Password is required';
+  else if (mode === 'register' && form.password.length < 6) errors.password = 'Password needs at least 6 characters';
+  else if (mode === 'register' && form.password.length > 100) errors.password = 'Password must be under 100 characters';
+  return errors;
+}
+
+function suggestPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%';
+  const bytes = new Uint32Array(14);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+}
+
+function strength(pw) {
+  let s = 0;
+  if (pw.length >= 8) s += 1;
+  if (pw.length >= 12) s += 1;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s += 1;
+  if (/\d/.test(pw)) s += 1;
+  if (/[^A-Za-z0-9]/.test(pw)) s += 1;
+  return Math.min(s, 4);
+}
+
+const STRENGTH_LABEL = ['Too weak', 'Weak', 'Okay', 'Strong', 'Very strong'];
 
 export default function Login() {
   const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ name: '', email: 'demo@test.com', password: 'demo123' });
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const nav = useNavigate();
+
+  function set(key, value) {
+    setForm((f) => ({ ...f, [key]: value }));
+    setFieldErrors((e) => ({ ...e, [key]: undefined }));
+  }
 
   async function submit(e) {
     e.preventDefault();
+    const errors = validate(form, mode);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
     setErr('');
     setLoading(true);
     try {
       const url = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const payload = mode === 'login' ? { email: form.email, password: form.password } : form;
+      const payload = mode === 'login'
+        ? { email: form.email.trim(), password: form.password }
+        : { name: form.name.trim(), email: form.email.trim(), password: form.password };
       const { data } = await api.post(url, payload);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -28,16 +76,7 @@ export default function Login() {
     }
   }
 
-  function fillDemo() {
-    setMode('login');
-    setForm({ name: '', email: 'demo@test.com', password: 'demo123' });
-    setErr('');
-  }
-  function fillAdmin() {
-    setMode('login');
-    setForm({ name: '', email: 'admin@test.com', password: 'admin123' });
-    setErr('');
-  }
+  const pwScore = mode === 'register' && form.password ? strength(form.password) : 0;
 
   return (
     <div className="theme-auth flex min-h-screen items-center justify-center px-4 py-10">
@@ -58,21 +97,49 @@ export default function Login() {
         <div className="p-8">
           <h2 className="font-heading text-2xl font-extrabold">{mode === 'login' ? 'Welcome back' : 'Create account'}</h2>
           <p className="page-subtitle !mt-1 !text-sm">
-            {mode === 'login' ? 'Login to continue learning.' : 'One account for all spaces & projects.'}
-            <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setErr(''); }} className="ml-2 text-accent hover:underline">
+            {mode === 'login' ? 'Login with the credentials sent to your mail.' : 'One account for all spaces & projects.'}
+            <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setErr(''); setFieldErrors({}); }} className="ml-2 text-accent hover:underline">
               {mode === 'login' ? 'Need account? Register' : 'Have account? Login'}
             </button>
           </p>
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={fillDemo} className="btn btn-outline !px-3 !py-1.5 !text-xs">Fill demo</button>
-            <button type="button" onClick={fillAdmin} className="btn btn-outline !px-3 !py-1.5 !text-xs">Fill admin</button>
-          </div>
-          <form onSubmit={submit} className="mt-4 space-y-3">
+          <form onSubmit={submit} className="mt-4 space-y-3" noValidate>
             {mode === 'register' && (
-              <div><label className="label">Name</label><input className="input" placeholder="Uday Kiran" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+              <div>
+                <label className="label">Name</label>
+                <input className="input" placeholder="Your full name" value={form.name} onChange={(e) => set('name', e.target.value)} />
+                {fieldErrors.name && <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>}
+              </div>
             )}
-            <div><label className="label">Email</label><input className="input" placeholder="you@test.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-            <div><label className="label">Password</label><input className="input" type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></div>
+            <div>
+              <label className="label">Email</label>
+              <input className="input" type="email" placeholder="you@example.com" value={form.email} onChange={(e) => set('email', e.target.value)} />
+              {fieldErrors.email && <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>}
+            </div>
+            <div>
+              <label className="label">Password</label>
+              <div className="relative">
+                <input className="input pr-11" type={showPw ? 'text' : 'password'} placeholder={mode === 'register' ? 'Min 6 characters' : 'Your password'} value={form.password} onChange={(e) => set('password', e.target.value)} />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text3 hover:text-text" title={showPw ? 'Hide' : 'Show'}>
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {fieldErrors.password && <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>}
+              {mode === 'register' && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1">
+                      {[0, 1, 2, 3].map((i) => (
+                        <span key={i} className={`h-1.5 w-8 rounded ${form.password && i < pwScore ? (pwScore >= 3 ? 'bg-green-500' : pwScore === 2 ? 'bg-amber-500' : 'bg-red-500') : 'bg-surface'}`} />
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => { set('password', suggestPassword()); setShowPw(true); }} className="inline-flex items-center gap-1 text-xs text-accent hover:underline">
+                      <Wand2 size={13} /> Suggest strong password
+                    </button>
+                  </div>
+                  {form.password && <p className="mt-1 text-xs text-text3">{STRENGTH_LABEL[pwScore]}</p>}
+                </div>
+              )}
+            </div>
             <button className="btn btn-primary w-full" disabled={loading}>{loading ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'} <ArrowRight size={15} /></button>
           </form>
           {err && <p className="alert alert-error mt-3">{err}{err === 'Email already used' ? ' — click “Have account? Login” above.' : ''}</p>}

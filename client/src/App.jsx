@@ -57,7 +57,7 @@ function Sidebar() {
     api.get('/api/spaces').then((r) => setSpaces(r.data.spaces || [])).catch(() => {});
   }, [location.pathname]);
 
-  const initial = (user.email || 'U')[0].toUpperCase();
+  const initial = ((user.name || user.email) || 'U')[0].toUpperCase();
   const W = collapsed ? 'w-16' : 'w-64';
 
   return (
@@ -136,7 +136,7 @@ function Sidebar() {
         {!collapsed ? (
           <>
             <div className="flex items-center justify-between px-1">
-              <p className="flex items-center gap-2 text-xs text-text2"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">{initial}</span><span className="max-w-[120px] truncate">{user.email}</span></p>
+              <p className="flex items-center gap-2 text-xs text-text2"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">{initial}</span><span className="max-w-[120px] truncate" title={user.email}>{user.name || user.email}</span></p>
               <button onClick={toggle} className="btn btn-ghost !px-2 !py-1" title="Toggle theme">{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
             </div>
             <button onClick={() => { localStorage.clear(); nav('/login'); }} className="btn btn-outline mt-2 w-full !py-1.5 !text-xs"><LogOut size={14} /> Logout</button>
@@ -154,7 +154,7 @@ function Topbar() {
   const [dark, toggle] = useDark();
   const { crumbs } = useCrumbs();
   const user = JSON.parse(localStorage.getItem('user') || 'null');
-  const initial = ((user?.email) || 'U')[0].toUpperCase();
+  const initial = (((user?.name || user?.email)) || 'U')[0].toUpperCase();
   return (
     <header className="navbar lg:left-60">
       <div className="container flex items-center justify-between gap-2">
@@ -176,7 +176,7 @@ function Topbar() {
           {user ? (
             <span className="flex items-center gap-2 text-sm" title={user.email}>
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{initial}</span>
-              <span className="hidden max-w-[200px] truncate text-text2 xl:inline">{user.email}</span>
+              <span className="hidden max-w-[200px] truncate text-text2 xl:inline" title={user.email}>{user.name || user.email}</span>
               <button onClick={() => { localStorage.clear(); nav('/login'); }} className="btn btn-outline !px-3 !py-1.5">Logout</button>
             </span>
           ) : (
