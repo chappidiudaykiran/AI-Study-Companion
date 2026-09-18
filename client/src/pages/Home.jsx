@@ -58,11 +58,17 @@ export default function Home() {
   }
 
   useEffect(() => {
-    const sid = new URLSearchParams(window.location.search).get('space');
-    loadSpaces(!sid).then(() => {}).catch(() => {});
-    if (sid) selectSpace(sid);
+    const sid = searchParams.get('space');
+    if (sid && sid !== selectedId) {
+      loadSpaces().catch(() => {});
+      selectSpace(sid);
+    } else if (!sid && selectedId) {
+      clearSelection();
+    } else if (!sid && !spaces.length) {
+      loadSpaces().catch(() => {});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   const selected = spaceDetail || spaces.find((s) => s._id === selectedId) || null;
 
