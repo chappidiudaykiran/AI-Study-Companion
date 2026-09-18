@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, ArrowRight, Trash2 } from 'lucide-react';
 import { useCrumbs } from '../crumbs.js';
@@ -25,6 +25,8 @@ export default function Home() {
   const [pform, setPform] = useState({ name: '', goal: '' });
   const [showPform, setShowPform] = useState(false);
   const [perr, setPerr] = useState('');
+  const createSpaceRef = useRef(null);
+  const newProjectRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const { setCrumbs } = useCrumbs();
 
@@ -68,6 +70,20 @@ export default function Home() {
       loadSpaces().catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Deep-links from sidebar: jump straight to the main-content forms
+  useEffect(() => {
+    if (searchParams.get('createSpace') && createSpaceRef.current) {
+      createSpaceRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get('newProject')) {
+      setShowPform(true);
+      setTimeout(() => newProjectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
   }, [searchParams]);
 
   const selected = spaceDetail || spaces.find((s) => s._id === selectedId) || null;
@@ -150,7 +166,7 @@ export default function Home() {
               {isAdmin && <p className="alert alert-info mt-3">Admin view — read-only. Manage the platform from the <Link to="/admin" className="font-semibold underline">Admin dashboard</Link>.</p>}
             </div>
             {!isAdmin && (
-            <div className="card fade-up-2">
+            <div ref={createSpaceRef} className="card fade-up-2">
               <h2 className="font-heading text-lg font-bold">Create a space</h2>
               <form onSubmit={createSpace} className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <input className="input flex-1" placeholder="e.g. Machine Learning" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -195,7 +211,7 @@ export default function Home() {
             </div>
 
             {!isAdmin && showPform && (
-              <form onSubmit={createProject} className="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 sm:flex-row">
+              <form ref={newProjectRef} onSubmit={createProject} className="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 sm:flex-row">
                 <input className="input flex-1" placeholder="Project name (min 2 chars)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required minLength={2} />
                 <input className="input flex-1" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required minLength={5} />
                 <button className="btn btn-primary whitespace-nowrap">Create project</button>

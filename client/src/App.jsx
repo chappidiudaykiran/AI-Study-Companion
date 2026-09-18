@@ -62,6 +62,7 @@ function Sidebar() {
   const lastProject = JSON.parse(localStorage.getItem('lastProject') || 'null');
   const activeTab = new URLSearchParams(location.search).get('tab') || 'overview';
   const activeSpaceId = new URLSearchParams(location.search).get('space');
+  const selSpace = spaces.find((s) => s._id === activeSpaceId) || null;
 
   useEffect(() => {
     if (onProject) return;
@@ -187,6 +188,7 @@ function Sidebar() {
           </>
         ) : (
           <>
+            {!selSpace && (
             <button
               onClick={() => nav('/')}
               className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${!activeSpaceId ? 'border-border bg-bg3' : 'border-transparent hover:bg-surface'}`}
@@ -194,17 +196,11 @@ function Sidebar() {
               <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white"><LayoutGrid size={16} /></span>
               {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">Spaces</span><span className="block text-xs text-text3">Manage learning spaces</span></span>}
             </button>
-            {!collapsed && (
-              <button onClick={() => { setShowSpaceForm(!showSpaceForm); setFormErr(''); }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+            )}
+            {!collapsed && !selSpace && (
+              <button onClick={() => nav('/?createSpace=1')} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
                 + Create Space
               </button>
-            )}
-            {!collapsed && showSpaceForm && (
-              <form onSubmit={createSpace} className="mt-1 space-y-2 rounded-xl border border-border bg-bg3 p-3">
-                <input value={spaceName} onChange={(e) => setSpaceName(e.target.value)} placeholder="Space name (min 2 chars)" className="input !py-2 !text-xs" />
-                <button className="btn btn-primary w-full !py-1.5 !text-xs">Create space</button>
-                {formErr && <p className="text-xs text-red-600">{formErr}</p>}
-              </form>
             )}
             {(() => {
               const sel = spaces.find((s) => s._id === activeSpaceId);
@@ -229,17 +225,9 @@ function Sidebar() {
                 {!spaceProjects.length && !collapsed && <p className="px-3 text-xs text-text3">No projects yet — create one below.</p>}
                 {!collapsed && (
                 <>
-                  <button onClick={() => { setShowProjectForm(!showProjectForm); setFormErr(''); }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+                  <button onClick={() => nav(`/?space=${sel._id}&newProject=1`)} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
                     + Create Project
                   </button>
-                  {showProjectForm && (
-                  <form onSubmit={createProject} className="mt-1 space-y-2 rounded-xl border border-border bg-bg3 p-3">
-                    <input value={projName} onChange={(e) => setProjName(e.target.value)} placeholder="Project name (min 2)" className="input !py-2 !text-xs" />
-                    <input value={projGoal} onChange={(e) => setProjGoal(e.target.value)} placeholder="Goal (min 5 chars)" className="input !py-2 !text-xs" />
-                    <button className="btn btn-primary w-full !py-1.5 !text-xs">Create project</button>
-                    {formErr && <p className="text-xs text-red-600">{formErr}</p>}
-                  </form>
-                  )}
                 </>
                 )}
               </>
