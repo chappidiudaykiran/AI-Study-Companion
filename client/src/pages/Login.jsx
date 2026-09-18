@@ -74,7 +74,7 @@ export default function Login() {
       }
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      nav('/');
+      nav(data.user.isAdmin ? '/admin' : '/');
     } catch (e) {
       setErr(e.response?.data?.error || 'Network Error — is backend on :5000?');
     } finally {

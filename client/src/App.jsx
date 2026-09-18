@@ -254,6 +254,7 @@ function Topbar() {
   const { crumbs } = useCrumbs();
   const user = JSON.parse(localStorage.getItem('user') || 'null');
   const initial = (((user?.name || user?.email)) || 'U')[0].toUpperCase();
+  const isAdminUser = !!user?.isAdmin;
 
   useEffect(() => {
     setOpen(false);
@@ -272,7 +273,7 @@ function Topbar() {
     nav('/login');
   }
   return (
-    <header className="navbar lg:left-60">
+    <header className={`navbar ${isAdminUser ? '' : 'lg:left-60'}`}>
       <div className="container flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Link to="/" className="flex items-center gap-2 lg:hidden">
@@ -326,13 +327,14 @@ export default function App() {
   const location = useLocation();
   const isAuth = ['/login', '/forgot-password', '/reset-password'].includes(location.pathname);
   const [crumbs, setCrumbs] = useState([]);
+  const adminView = !isAuth && !!JSON.parse(localStorage.getItem('user') || 'null')?.isAdmin;
   return (
     <CrumbCtx.Provider value={{ crumbs, setCrumbs }}>
       <div className="min-h-screen bg-bg">
-        {!isAuth && <Sidebar />}
+        {!isAuth && !adminView && <Sidebar />}
         {!isAuth && <Topbar />}
-        <div className={isAuth ? '' : 'lg:pl-60'}>
-          <main className={isAuth ? '' : 'page'}>
+        <div className={isAuth || adminView ? '' : 'lg:pl-60'}>
+          <main className={isAuth || adminView ? '' : 'page'}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
