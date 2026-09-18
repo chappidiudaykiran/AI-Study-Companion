@@ -57,6 +57,14 @@ export default function Project() {
   useEffect(() => {
     chatBoxRef.current?.scrollTo({ top: chatBoxRef.current.scrollHeight, behavior: 'smooth' });
   }, [chat, asking, tab]);
+
+  // Tutor-only: freeze page scroll, chat area scrolls instead
+  useEffect(() => {
+    if (tab !== 'tutor') return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [tab]);
   const [questions, setQuestions] = useState([]);
   const [mastery, setMastery] = useState([]);
   const [growth, setGrowth] = useState([]);
