@@ -53,6 +53,7 @@ function Sidebar() {
   const [projName, setProjName] = useState('');
   const [projGoal, setProjGoal] = useState('');
   const [formErr, setFormErr] = useState('');
+  const [spaceProjects, setSpaceProjects] = useState([]);
   const user = JSON.parse(localStorage.getItem('user') || 'null');
   if (!user) return null;
 
@@ -66,6 +67,14 @@ function Sidebar() {
     if (onProject) return;
     loadSpaces();
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (activeSpaceId) {
+      api.get(`/api/spaces/${activeSpaceId}`).then((r) => setSpaceProjects(r.data.projects || [])).catch(() => setSpaceProjects([]));
+    } else {
+      setSpaceProjects([]);
+    }
+  }, [activeSpaceId]);
 
   async function loadSpaces() {
     try {
@@ -205,16 +214,21 @@ function Sidebar() {
                 <button onClick={() => nav('/')} className="mt-2 flex w-full items-center gap-1 px-3 text-sm font-medium text-text2 hover:text-text">
                   <span aria-hidden>←</span> {!collapsed && 'Spaces'}
                 </button>
-                <button onClick={() => nav(`/?space=${sel._id}`)} className="flex w-full items-center gap-2.5 rounded-xl border border-border bg-bg3 px-3 py-2.5 text-left">
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">{(sel.name || 'S')[0].toUpperCase()}</span>
-                  {!collapsed && <span className="min-w-0 text-left"><span className="block truncate text-sm font-semibold">{sel.name}</span><span className="block text-xs text-text3">{sel.projects ?? 0} project{(sel.projects ?? 0) === 1 ? '' : 's'}</span></span>}
-                </button>
+                {!collapsed && <p className="label !mb-1 px-3 pt-2">Projects</p>}
+                {spaceProjects.map((p) => (
+                  <button
+                    key={p._id}
+                    onClick={() => nav(`/project/${p._id}`)}
+                    title={p.name}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition text-text2 hover:bg-surface hover:text-text"
+                  >
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-xs font-bold text-accent">{(p.name || 'P')[0].toUpperCase()}</span>
+                    {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">{p.name}</span><span className="block text-xs text-text3">{p.masteryAvg !== null && p.masteryAvg !== undefined ? `${p.masteryAvg}% mastery` : 'new'}</span></span>}
+                  </button>
+                ))}
+                {!spaceProjects.length && !collapsed && <p className="px-3 text-xs text-text3">No projects yet — create one below.</p>}
                 {!collapsed && (
                 <>
-                  <p className="label !mb-0 px-3 pt-2">Projects</p>
-                  <button onClick={() => nav(`/?space=${sel._id}`)} className="px-3 text-left text-[13px] text-text2 hover:text-accent hover:underline">
-                    View all projects in this space →
-                  </button>
                   <button onClick={() => { setShowProjectForm(!showProjectForm); setFormErr(''); }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
                     + Create Project
                   </button>
