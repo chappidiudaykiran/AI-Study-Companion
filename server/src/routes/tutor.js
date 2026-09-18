@@ -82,6 +82,15 @@ Schema: {"answer":"...","citations":[{"doc":"...","page":1}],"confidence":0.0-1.
   } catch (e) { next(e); }
 });
 
+// DELETE history — start a fresh conversation
+router.delete('/projects/:projectId/tutor/history', loadProject, async (req, res, next) => {
+  try {
+    const r = await Message.deleteMany({ project: req.project._id, user: req.user._id });
+    await logEvent({ user: req.user._id, project: req.project._id, type: 'tutor.cleared', payload: { removed: r.deletedCount } });
+    res.json({ cleared: r.deletedCount });
+  } catch (e) { next(e); }
+});
+
 // GET history
 router.get('/projects/:projectId/tutor/history', loadProject, async (req, res, next) => {
   try {

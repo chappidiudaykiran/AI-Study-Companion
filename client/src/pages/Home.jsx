@@ -1,172 +1,184 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FolderOpen, Target, UploadCloud, MessagesSquare, ListChecks, TrendingUp, ArrowRight, Plus } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Plus, ArrowRight } from 'lucide-react';
+import { useCrumbs } from '../crumbs.js';
 import api from '../api/client.js';
 
-const STEPS = [
-  { icon: FolderOpen, title: '1. Space', desc: 'Broad area (e.g. ML)' },
-  { icon: Target, title: '2. Project', desc: 'Goal-focused workspace' },
-  { icon: UploadCloud, title: '3. Material', desc: 'Upload PDF, auto-processed' },
-  { icon: MessagesSquare, title: '4. Tutor', desc: 'Ask, get cited answers' },
-  { icon: ListChecks, title: '5. Quiz', desc: 'Adaptive MCQ + open' },
-  { icon: TrendingUp, title: '6. Growth', desc: 'Mastery + next step' },
-];
+function initial(name) {
+  return (name || 'S').trim().charAt(0).toUpperCase();
+}
 
 export default function Home() {
   const [spaces, setSpaces] = useState([]);
-  const [global, setGlobal] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [spaceDetail, setSpaceDetail] = useState(null);
   const [form, setForm] = useState({ name: '', description: '' });
+  const [pform, setPform] = useState({ name: '', goal: '' });
+  const [showPform, setShowPform] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { setCrumbs } = useCrumbs();
 
-  async function load() {
+  async function loadSpaces(selectFirst = false) {
     const { data } = await api.get('/api/spaces');
-    setSpaces(data.spaces || []);
-    try {
-      const g = await api.get('/api/analytics/global');
-      setGlobal(g.data);
-    } catch {}
+    const list = data.spaces || [];
+    setSpaces(list);
+    if (selectFirst && list.length && !selectedId) {
+      selectSpace(list[0]._id, list);
+    }
   }
-  useEffect(() => { load().catch(() => {}); }, []);
 
-  async function create(e) {
+  async function selectSpace(id, list = spaces) {
+    setSelectedId(id);
+    setSearchParams(id ? { space: id } : {});
+    try {
+      const { data } = await api.get(`/api/spaces/${id}`);
+      setSpaceDetail(data.space || list.find((s) => s._id === id) || null);
+      setProjects(data.projects || []);
+    } catch {
+      setProjects([]);
+    }
+  }
+
+  function clearSelection() {
+    setSelectedId(null);
+    setSpaceDetail(null);
+    setProjects([]);
+    setSearchParams({});
+    loadSpaces();
+  }
+
+  useEffect(() => {
+    const sid = new URLSearchParams(window.location.search).get('space');
+    loadSpaces(!sid).then(() => {}).catch(() => {});
+    if (sid) selectSpace(sid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selected = spaceDetail || spaces.find((s) => s._id === selectedId) || null;
+
+  useEffect(() => {
+    setCrumbs(selected ? [{ label: 'Spaces', to: '/' }, { label: selected.name }] : [{ label: 'Spaces' }]);
+  }, [selectedId, selected?.name]);
+
+  async function createSpace(e) {
     e.preventDefault();
-    await api.post('/api/spaces', form);
+    if (!form.name.trim()) return;
+    const { data } = await api.post('/api/spaces', form);
     setForm({ name: '', description: '' });
-    load();
+    await loadSpaces();
+    if (data.space) selectSpace(data.space._id);
+  }
+
+  async function createProject(e) {
+    e.preventDefault();
+    if (!selectedId || !pform.name.trim() || !pform.goal.trim()) return;
+    await api.post('/api/projects', { spaceId: selectedId, name: pform.name, description: '', goal: pform.goal });
+    setPform({ name: '', goal: '' });
+    setShowPform(false);
+    selectSpace(selectedId);
   }
 
   return (
     <div className="theme-dashboard min-h-screen pb-16">
       <div className="container">
-        <div className="page-header fade-up">
-          <h1 className="page-title">What are you learning <span className="hero-gradient-text">today?</span></h1>
-          <p className="page-subtitle">Create a space → project → upload PDF → chat with tutor → quiz → track mastery. Everything stays in its project.</p>
+        {/* Mobile spaces nav (global sidebar is desktop-only) */}
+        <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+          {spaces.map((s) => (
+            <button
+              key={s._id}
+              onClick={() => selectSpace(s._id)}
+              className={`flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm ${s._id === selectedId ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-bg2'}`}
+            >
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-accent text-[11px] font-bold text-white">{initial(s.name)}</span>
+              {s.name}
+            </button>
+          ))}
         </div>
 
-        {global && (
-          <div className="grid-4 fade-up-2">
-            <div className="card"><p className="label">Quiz attempts</p><p className="font-heading text-3xl font-extrabold">{global.attempts}</p></div>
-            <div className="card"><p className="label">Average score</p><p className="font-heading text-3xl font-extrabold">{global.avgScore}%</p></div>
-            <div className="card"><p className="label">Spaces</p><p className="font-heading text-3xl font-extrabold">{spaces.length}</p></div>
-            <div className="card"><p className="label">Concepts needing attention</p><p className="font-heading text-3xl font-extrabold">{global.attention?.length ?? 0}</p></div>
+        {!selected ? (
+          <div>
+            <div className="page-header fade-up">
+              <h1 className="page-title">Your <span className="hero-gradient-text">spaces</span></h1>
+              <p className="page-subtitle">{spaces.length} space(s). Select a space to open its workspace.</p>
+            </div>
+            <div className="card fade-up-2">
+              <h2 className="font-heading text-lg font-bold">Create a space</h2>
+              <form onSubmit={createSpace} className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input className="input flex-1" placeholder="e.g. Machine Learning" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                <input className="input flex-1" placeholder="Short description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <button className="btn btn-primary"><Plus size={16} /> Create</button>
+              </form>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {spaces.map((s) => (
+                <button key={s._id} onClick={() => selectSpace(s._id)} className="rounded-2xl border border-border bg-white p-5 text-left shadow-sm transition hover:border-[#a5b4fc]">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#ede9fe] text-base font-bold text-[#4f46e5]">{initial(s.name)}</span>
+                  <span className="mt-2 block font-semibold text-text">{s.name}</span>
+                  <span className="block truncate text-[13px] text-text3">{s.description || 'No description'}</span>
+                  <span className="mt-3 flex items-center gap-1 text-[13px] font-semibold text-[#4f46e5]">Open Space <ArrowRight size={14} /></span>
+                </button>
+              ))}
+            </div>
+            {!spaces.length && <div className="card mt-4 text-sm text-text2">No spaces yet — create one above to begin.</div>}
+          </div>
+        ) : (
+          <div>
+            <button onClick={clearSelection} className="flex items-center gap-1 text-sm text-text2 hover:text-text">← All spaces</button>
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-[#4f46e5]">Space</p>
+                <h1 className="mt-1 font-heading text-3xl font-extrabold text-text">{selected.name}</h1>
+                <p className="mt-1 text-sm text-text2">{projects.length} project{projects.length === 1 ? '' : 's'} in this space. Select a project to open its workspace.</p>
+              </div>
+              <button onClick={() => setShowPform((v) => !v)} className="rounded-lg bg-[#4338ca] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4f46e5]">
+                + New Project
+              </button>
+            </div>
+
+            {showPform && (
+              <form onSubmit={createProject} className="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 sm:flex-row">
+                <input className="input flex-1" placeholder="Project name (e.g. Neural Nets)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required />
+                <input className="input flex-1" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required />
+                <button className="btn btn-primary whitespace-nowrap">Create project</button>
+              </form>
+            )}
+
+            <div className="mt-5 grid max-w-3xl gap-4">
+              {projects.map((p) => {
+                const pct = p.masteryAvg ?? 0;
+                return (
+                  <div key={p._id} className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#ede9fe] text-lg font-bold text-[#4f46e5]">
+                        {initial(p.name)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-text">{p.name}</p>
+                        <p className="truncate text-[13px] text-text3">
+                          {(p.description || p.goal || '').slice(0, 60)}{p.createdAt ? ` · ${new Date(p.createdAt).toLocaleDateString()}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center gap-3">
+                      <div className="h-1.5 flex-1 rounded-full bg-[#e5e7eb]">
+                        <div className="h-1.5 rounded-full bg-[#c7d2fe]" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-[13px] font-bold text-text">{pct}%</span>
+                    </div>
+                    <div className="mt-3 border-t border-border pt-3 text-right">
+                      <Link to={`/project/${p._id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#4f46e5] hover:underline">
+                        Open Project <ArrowRight size={15} />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+              {!projects.length && <div className="rounded-2xl border border-border bg-white p-5 text-sm text-text2">No projects yet — click “New Project” to begin.</div>}
+            </div>
           </div>
         )}
-
-        {global && ((global.recentProjects || []).length > 0 || (global.attention || []).length > 0 || global.nextAction) && (
-          <div className="mt-5 grid gap-5 md:grid-cols-3">
-            <div className="card fade-up-3">
-              <h2 className="font-heading font-bold">Continue learning</h2>
-              <div className="mt-2 space-y-1 text-sm">
-                {(global.recentProjects || []).map((p) => (
-                  <Link key={p.id} to={`/project/${p.id}`} className="block rounded-lg px-2 py-1.5 hover:bg-surface">
-                    <span className="font-semibold text-accent">{p.name}</span>
-                    <span className="block text-xs text-text3">{p.space} — {p.goal}</span>
-                  </Link>
-                ))}
-                {!(global.recentProjects || []).length && <p className="text-sm text-text3">No projects yet.</p>}
-              </div>
-            </div>
-            <div className="card fade-up-3">
-              <h2 className="font-heading font-bold">Needs attention</h2>
-              <div className="mt-2 space-y-1 text-sm">
-                {(global.attention || []).map((a, i) => (
-                  <p key={i} className="rounded-lg bg-bg3 px-2 py-1.5">
-                    <b>{a.concept}</b> {a.score}% · {a.mistakes} mistakes
-                    {a.projectId && <Link to={`/project/${a.projectId}`} className="ml-1 text-accent hover:underline">({a.project})</Link>}
-                  </p>
-                ))}
-                {!(global.attention || []).length && <p className="text-sm text-text3">Nothing weak right now. Take a quiz!</p>}
-              </div>
-            </div>
-            <div className="card fade-up-3">
-              <h2 className="font-heading font-bold">Recommended next step</h2>
-              {global.nextAction ? (
-                <>
-                  <p className="mt-2 text-sm">{global.nextAction.text}</p>
-                  {global.nextAction.projectId && <Link to={`/project/${global.nextAction.projectId}`} className="mt-1 inline-block text-sm text-accent hover:underline">Open {global.nextAction.project} →</Link>}
-                </>
-              ) : <p className="mt-2 text-sm text-text3">Upload material and take a quiz to get recommendations.</p>}
-            </div>
-          </div>
-        )}
-
-        <div className="card fade-up-3 mt-5">
-          <h2 className="font-heading text-lg font-bold">How it works — no searching needed</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {STEPS.map((s) => (
-              <div key={s.title} className="rounded-xl border border-border bg-bg3 p-3">
-                <s.icon size={18} className="text-accent" />
-                <p className="mt-1 text-sm font-semibold">{s.title}</p>
-                <p className="text-xs text-text2">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card fade-up-4 mt-5">
-          <h2 className="font-heading text-lg font-bold">Create a space</h2>
-          <form onSubmit={create} className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <input className="input flex-1" placeholder="e.g. Machine Learning" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <input className="input flex-1" placeholder="Short description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            <button className="btn btn-primary"><Plus size={16} /> Create</button>
-          </form>
-        </div>
-
-        <h2 className="mb-3 mt-8 font-heading text-xl font-bold">Your spaces</h2>
-        {!spaces.length && <div className="card text-sm text-text2">No spaces yet — create one above to begin.</div>}
-        <div className="grid-3">
-          {spaces.map((s) => <SpaceCard key={s._id} space={s} reload={load} />)}
-        </div>
       </div>
-    </div>
-  );
-}
-
-function SpaceCard({ space, reload }) {
-  const [projects, setProjects] = useState([]);
-  const [show, setShow] = useState(false);
-  const [pform, setPform] = useState({ name: '', goal: '' });
-
-  async function open() {
-    setShow(!show);
-    if (!show) {
-      const { data } = await api.get(`/api/spaces/${space._id}`);
-      setProjects(data.projects || []);
-    }
-  }
-  async function createProject(e) {
-    e.preventDefault();
-    await api.post('/api/projects', { spaceId: space._id, name: pform.name, description: '', goal: pform.goal });
-    const { data } = await api.get(`/api/spaces/${space._id}`);
-    setProjects(data.projects || []);
-    setPform({ name: '', goal: '' });
-    reload();
-  }
-  return (
-    <div className="card">
-      <p className="font-heading text-lg font-bold">{space.name}</p>
-      <p className="text-sm text-text2">{space.description || 'No description'}</p>
-      <button onClick={open} className="btn btn-outline mt-3 !px-3 !py-1.5">{show ? 'Hide projects' : 'Open projects'} <ArrowRight size={14} /></button>
-      {show && (
-        <div className="mt-3 border-t border-border pt-3">
-          <form onSubmit={createProject} className="grid gap-2">
-            <input className="input" placeholder="Project name (e.g. Neural Nets)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required />
-            <input className="input" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required />
-            <button className="btn btn-primary !py-2">Create project</button>
-          </form>
-          <div className="mt-2 space-y-1">
-            {projects.map((p) => (
-              <Link key={p._id} to={`/project/${p._id}`} className="block rounded-lg px-2 py-1.5 text-sm hover:bg-surface">
-                <span className="font-semibold text-accent">{p.name}</span> <span className="text-text2">— {p.goal}</span>
-                <span className="block text-xs text-text3">
-                  {p.masteryAvg !== null && p.masteryAvg !== undefined ? `mastery ${p.masteryAvg}% · ` : 'no mastery yet · '}{p.attempts ?? 0} attempts
-                  {p.weakest && ` · weak: ${p.weakest.concept} (${p.weakest.score}%)`}
-                </span>
-              </Link>
-            ))}
-            {!projects.length && <p className="text-xs text-text3">No projects yet.</p>}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

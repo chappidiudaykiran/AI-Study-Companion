@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Activity, Cpu, Briefcase } from 'lucide-react';
 import api from '../api/client.js';
+import { useCrumbs } from '../crumbs.js';
 
 const EVAL_CASES = [
   ['T1', 'tutor-grounded', 'In-material question → cited answer with correct page'],
@@ -16,6 +17,8 @@ const EVAL_CASES = [
 
 export default function Admin() {
   const [data, setData] = useState({ overview: null, users: [], logs: [], jobs: [], events: [], spaces: [], projects: [], evaluation: null });
+  const { setCrumbs } = useCrumbs();
+  useEffect(() => { setCrumbs([{ label: 'Spaces', to: '/' }, { label: 'Admin' }]); }, []);
   const [filters, setFilters] = useState({ type: '', project: '', space: '', from: '', to: '' });
   const [journeyId, setJourneyId] = useState('');
   const [journey, setJourney] = useState(null);

@@ -13,8 +13,11 @@ router.use(auth);
 
 router.get('/', async (req, res, next) => {
   try {
-    const spaces = await Space.find({ user: req.user._id }).sort({ updatedAt: -1 });
-    res.json({ spaces });
+    const spaces = await Space.find({ user: req.user._id }).sort({ updatedAt: -1 }).lean();
+    const withCounts = await Promise.all(
+      spaces.map(async (s) => ({ ...s, projects: await Project.countDocuments({ space: s._id, user: req.user._id }) }))
+    );
+    res.json({ spaces: withCounts });
   } catch (e) { next(e); }
 });
 

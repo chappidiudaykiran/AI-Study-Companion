@@ -27,8 +27,11 @@ router.post('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.get('/:projectId', loadProject, async (req, res) => {
-  res.json({ project: req.project });
+router.get('/:projectId', loadProject, async (req, res, next) => {
+  try {
+    const project = await Project.findById(req.project._id).populate('space', 'name').lean();
+    res.json({ project });
+  } catch (e) { next(e); }
 });
 
 module.exports = router;
