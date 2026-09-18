@@ -5,6 +5,7 @@ const Space = require('../models/Space');
 const { auth } = require('../middleware/auth');
 const { loadProject } = require('../middleware/ownership');
 const { logEvent } = require('../services/eventService');
+const { deleteProjectCascade } = require('../services/cleanup');
 
 const router = express.Router();
 router.use(auth);
@@ -31,6 +32,15 @@ router.get('/:projectId', loadProject, async (req, res, next) => {
   try {
     const project = await Project.findById(req.project._id).populate('space', 'name').lean();
     res.json({ project });
+  } catch (e) { next(e); }
+});
+
+// DELETE /api/projects/:projectId — cascade deletes all project learning data
+router.delete('/:projectId', loadProject, async (req, res, next) => {
+  try {
+    await deleteProjectCascade(req.project._id);
+    await logEvent({ user: req.user._id, space: req.project.space, type: 'project.deleted', payload: { name: req.project.name } });
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText } from 'lucide-react';
+import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
 import api from '../api/client.js';
 import { useCrumbs } from '../crumbs.js';
@@ -57,6 +57,24 @@ export default function Project() {
   const [growth, setGrowth] = useState([]);
   const [rec, setRec] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [materials, setMaterials] = useState([]);
+
+  async function loadMaterials() {
+    try {
+      const { data } = await api.get(`/api/projects/${id}/materials`);
+      setMaterials(data.materials || []);
+    } catch {}
+  }
+
+  useEffect(() => {
+    if (tab === 'materials') loadMaterials();
+  }, [tab]);
+
+  async function deleteMaterial(mid, name) {
+    if (!window.confirm(`Delete "${name}"? Its chunks and jobs go too. This cannot be undone.`)) return;
+    await api.delete(`/api/materials/${mid}`);
+    loadMaterials();
+  }
 
   // Tab switches go through the URL so the global sidebar stays in sync
   const goTab = (t) => {
@@ -127,7 +145,7 @@ export default function Project() {
     const timer = setInterval(async () => {
       const s = await api.get(`/api/materials/${mid}/status`);
       setMatStatus(s.data.material.status + (s.data.material.error ? ` — ${s.data.material.error}` : ''));
-      if (['ready', 'failed'].includes(s.data.material.status)) { clearInterval(timer); refreshStats(); }
+      if (['ready', 'failed'].includes(s.data.material.status)) { clearInterval(timer); refreshStats(); loadMaterials(); }
     }, 3000);
   }
 
@@ -292,6 +310,24 @@ export default function Project() {
                 <button className="btn btn-primary"><UploadCloud size={16} /> Upload & process</button>
               </div>
               <p className="mt-2 text-sm">Status: <span className={`badge ${matStatus.includes('ready') ? 'badge-low' : matStatus.includes('fail') ? 'badge-high' : 'badge-medium'}`}>{matStatus || 'no upload yet'}</span></p>
+              <div className="mt-4">
+                <h3 className="font-heading font-bold">Documents in this project</h3>
+                <div className="mt-2 space-y-2">
+                  {materials.map((m) => (
+                    <div key={m._id} className="flex items-center gap-3 rounded-xl border border-border bg-bg3 px-3 py-2.5 text-sm">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{m.filename}</span>
+                        <span className="text-xs text-text3">{m.pages || '?'} pages · {new Date(m.createdAt).toLocaleDateString()}</span>
+                      </span>
+                      <span className={`badge ${m.status === 'ready' ? 'badge-low' : m.status === 'failed' ? 'badge-high' : 'badge-medium'}`}>{m.status}</span>
+                      <button onClick={() => deleteMaterial(m._id, m.filename)} title={`Delete ${m.filename}`} className="rounded-lg p-1.5 text-text3 transition hover:bg-red-50 hover:text-red-600">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  {!materials.length && <p className="text-sm text-text3">No documents yet.</p>}
+                </div>
+              </div>
             </form>
           )}
 

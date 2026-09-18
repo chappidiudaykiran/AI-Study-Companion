@@ -8,6 +8,7 @@ const { auth } = require('../middleware/auth');
 const { loadProject } = require('../middleware/ownership');
 const { uploadLimiter } = require('../middleware/rateLimit');
 const { logEvent } = require('../services/eventService');
+const { deleteMaterialCascade } = require('../services/cleanup');
 
 const router = express.Router();
 router.use(auth);
@@ -54,6 +55,28 @@ router.get('/materials/:materialId/status', async (req, res, next) => {
     const material = await Material.findOne({ _id: req.params.materialId, user: req.user._id });
     if (!material) return res.status(404).json({ error: 'Not found' });
     res.json({ material: { id: material._id, status: material.status, pages: material.pages, error: material.error } });
+  } catch (e) { next(e); }
+});
+
+// GET /api/projects/:projectId/materials — list documents in a project
+router.get('/projects/:projectId/materials', loadProject, async (req, res, next) => {
+  try {
+    const materials = await Material.find({ project: req.project._id, user: req.user._id })
+      .select('filename pages status error createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ materials });
+  } catch (e) { next(e); }
+});
+
+// DELETE /api/materials/:materialId — removes file, chunks and jobs
+router.delete('/materials/:materialId', async (req, res, next) => {
+  try {
+    const material = await Material.findOne({ _id: req.params.materialId, user: req.user._id });
+    if (!material) return res.status(404).json({ error: 'Not found' });
+    await deleteMaterialCascade(material._id);
+    await logEvent({ user: req.user._id, project: material.project, type: 'material.deleted', payload: { filename: material.filename } });
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 

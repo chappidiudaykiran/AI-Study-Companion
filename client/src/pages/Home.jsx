@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, ArrowRight } from 'lucide-react';
+import { Plus, ArrowRight, Trash2 } from 'lucide-react';
 import { useCrumbs } from '../crumbs.js';
 import api from '../api/client.js';
 
@@ -85,6 +85,21 @@ export default function Home() {
     if (data.space) selectSpace(data.space._id);
   }
 
+  async function deleteSpace(e, id, name) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete space "${name}" and ALL its projects and learning data? This cannot be undone.`)) return;
+    await api.delete(`/api/spaces/${id}`);
+    if (selectedId === id) clearSelection();
+    else loadSpaces();
+  }
+
+  async function deleteProject(e, id, name) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete project "${name}" and ALL its materials, chats, quizzes and mastery? This cannot be undone.`)) return;
+    await api.delete(`/api/projects/${id}`);
+    selectSpace(selectedId);
+  }
+
   async function createProject(e) {
     e.preventDefault();
     setPerr('');
@@ -136,12 +151,17 @@ export default function Home() {
             )}
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {spaces.map((s) => (
-                <button key={s._id} onClick={() => selectSpace(s._id)} className="rounded-2xl border border-border bg-white p-5 text-left shadow-sm transition hover:border-[#a5b4fc]">
+                <div key={s._id} onClick={() => selectSpace(s._id)} className="relative cursor-pointer rounded-2xl border border-border bg-white p-5 text-left shadow-sm transition hover:border-[#a5b4fc]">
+                  {!isAdmin && (
+                  <button onClick={(e) => deleteSpace(e, s._id, s.name)} title={`Delete ${s.name}`} className="absolute right-3 top-3 rounded-lg p-1.5 text-text3 transition hover:bg-red-50 hover:text-red-600">
+                    <Trash2 size={15} />
+                  </button>
+                  )}
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#ede9fe] text-base font-bold text-[#4f46e5]">{initial(s.name)}</span>
                   <span className="mt-2 block font-semibold text-text">{s.name}</span>
                   <span className="block truncate text-[13px] text-text3">{s.description || 'No description'}</span>
                   <span className="mt-3 flex items-center gap-1 text-[13px] font-semibold text-[#4f46e5]">Open Space <ArrowRight size={14} /></span>
-                </button>
+                </div>
               ))}
             </div>
             {!spaces.length && <div className="card mt-4 text-sm text-text2">No spaces yet — create one above to begin.</div>}
@@ -195,7 +215,12 @@ export default function Home() {
                       </div>
                       <span className="text-[13px] font-bold text-text">{pct}%</span>
                     </div>
-                    <div className="mt-3 border-t border-border pt-3 text-right">
+                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+                      {!isAdmin ? (
+                      <button onClick={(e) => deleteProject(e, p._id, p.name)} className="inline-flex items-center gap-1 text-sm text-text3 transition hover:text-red-600">
+                        <Trash2 size={14} /> Delete
+                      </button>
+                      ) : <span />}
                       <Link to={`/project/${p._id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#4f46e5] hover:underline">
                         Open Project <ArrowRight size={15} />
                       </Link>
