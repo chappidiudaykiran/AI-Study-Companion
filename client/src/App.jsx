@@ -339,7 +339,7 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/" element={guard(<Home />)} />
+              <Route path="/" element={guard(adminView ? <Admin /> : <Home />)} />
               <Route path="/project/:id" element={guard(<Project />)} />
               <Route path="/admin" element={guard(<Admin />)} />
               <Route path="/profile" element={guard(<Profile />)} />
