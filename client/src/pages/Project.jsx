@@ -221,12 +221,14 @@ export default function Project() {
         </p>
 
         <div className="mt-3">
+          {tab === 'overview' && (
           <div className="grid-4 fade-up-2">
             <div className="card"><p className="label">Concepts</p><p className="font-heading text-3xl font-extrabold">{mastery.length}</p></div>
             <div className="card"><p className="label">Quiz attempts</p><p className="font-heading text-3xl font-extrabold">{analytics?.attempts ?? 0}</p></div>
             <div className="card"><p className="label">Avg score</p><p className="font-heading text-3xl font-extrabold">{analytics?.avgScore ?? 0}%</p></div>
             <div className="card"><p className="label">Current section</p><p className="font-heading text-lg font-bold">{TAB_LABEL[tab] || tab}</p></div>
           </div>
+          )}
 
           {tab === 'overview' && (
             <div className="mt-4 space-y-4">
