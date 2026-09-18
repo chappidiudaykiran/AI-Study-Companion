@@ -67,12 +67,25 @@ function Sidebar() {
     <aside className={`fixed inset-y-0 left-0 z-[100] hidden ${W} flex-col border-r border-border bg-bg2 transition-all lg:flex`}>
       <div className="flex items-center gap-2 px-4 pt-4">
         {!collapsed ? (
-          <span className="min-w-0 flex-1">
-            <img src="/logo-light.svg" alt="AI Study Companion" className="h-11 w-auto dark:hidden" />
-            <img src="/logo-dark.svg" alt="AI Study Companion" className="hidden h-11 w-auto dark:block" />
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#4f46e5] text-white">
+              <svg width="21" height="21" viewBox="0 0 60 60" fill="none" stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="4.5" />
+                <line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.2" />
+              </svg>
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-bold leading-tight">AI Study Companion</span>
+              <span className="block truncate text-[11px] text-text3">Learn from your documents</span>
+            </span>
           </span>
         ) : (
-          <img src="/logo-icon.svg" alt="AI Study Companion" className="h-9 w-9 shrink-0" />
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#4f46e5] text-white">
+            <svg width="21" height="21" viewBox="0 0 60 60" fill="none" stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="4.5" />
+              <line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.2" />
+            </svg>
+          </span>
         )}
         <button onClick={() => setCollapsed(!collapsed)} className="btn-ghost btn ml-auto !px-1.5" title="Collapse">
           {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
