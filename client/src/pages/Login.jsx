@@ -41,6 +41,7 @@ const STRENGTH_LABEL = ['Too weak', 'Weak', 'Okay', 'Strong', 'Very strong'];
 
 export default function Login() {
   const [mode, setMode] = useState('login');
+  const [portal, setPortal] = useState('user'); // user | admin (login only)
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [fieldErrors, setFieldErrors] = useState({});
   const [err, setErr] = useState('');
@@ -66,6 +67,11 @@ export default function Login() {
         ? { email: form.email.trim(), password: form.password }
         : { name: form.name.trim(), email: form.email.trim(), password: form.password };
       const { data } = await api.post(url, payload);
+      if (portal === 'admin' && mode === 'login' && !data.user.isAdmin) {
+        setErr('This account is not an admin. Use learner login or ask for admin access.');
+        setLoading(false);
+        return;
+      }
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       nav('/');
@@ -95,13 +101,19 @@ export default function Login() {
         </div>
         {/* Right: form */}
         <div className="p-8">
-          <h2 className="font-heading text-2xl font-extrabold">{mode === 'login' ? 'Welcome back' : 'Create account'}</h2>
+          <h2 className="font-heading text-2xl font-extrabold">{mode === 'register' ? 'Create account' : portal === 'admin' ? 'Admin login' : 'Welcome back'}</h2>
           <p className="page-subtitle !mt-1 !text-sm">
             {mode === 'login' ? 'Login with the credentials sent to your mail.' : 'One account for all spaces & projects.'}
             <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setErr(''); setFieldErrors({}); }} className="ml-2 text-accent hover:underline">
               {mode === 'login' ? 'Need account? Register' : 'Have account? Login'}
             </button>
           </p>
+          {mode === 'login' && (
+          <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-bg3 p-1 text-sm font-medium">
+            <button type="button" onClick={() => { setPortal('user'); setErr(''); }} className={`rounded-lg px-3 py-2 transition ${portal === 'user' ? 'bg-bg2 text-text shadow-sm' : 'text-text3 hover:text-text'}`}>Learner</button>
+            <button type="button" onClick={() => { setPortal('admin'); setErr(''); }} className={`rounded-lg px-3 py-2 transition ${portal === 'admin' ? 'bg-bg2 text-text shadow-sm' : 'text-text3 hover:text-text'}`}>Admin</button>
+          </div>
+          )}
           <form onSubmit={submit} className="mt-4 space-y-3" noValidate>
             {mode === 'register' && (
               <div>
