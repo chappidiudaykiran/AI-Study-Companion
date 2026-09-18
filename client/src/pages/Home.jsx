@@ -16,6 +16,7 @@ export default function Home() {
   const [form, setForm] = useState({ name: '', description: '' });
   const [pform, setPform] = useState({ name: '', goal: '' });
   const [showPform, setShowPform] = useState(false);
+  const [perr, setPerr] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const { setCrumbs } = useCrumbs();
 
@@ -72,8 +73,14 @@ export default function Home() {
 
   async function createProject(e) {
     e.preventDefault();
+    setPerr('');
     if (!selectedId || !pform.name.trim() || !pform.goal.trim()) return;
-    await api.post('/api/projects', { spaceId: selectedId, name: pform.name, description: '', goal: pform.goal });
+    try {
+      await api.post('/api/projects', { spaceId: selectedId, name: pform.name, description: '', goal: pform.goal });
+    } catch (err) {
+      setPerr(err.response?.data?.error || 'Could not create project — try again');
+      return;
+    }
     setPform({ name: '', goal: '' });
     setShowPform(false);
     selectSpace(selectedId);
@@ -138,11 +145,12 @@ export default function Home() {
 
             {showPform && (
               <form onSubmit={createProject} className="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 sm:flex-row">
-                <input className="input flex-1" placeholder="Project name (e.g. Neural Nets)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required />
-                <input className="input flex-1" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required />
+                <input className="input flex-1" placeholder="Project name (min 2 chars)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required minLength={2} />
+                <input className="input flex-1" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required minLength={5} />
                 <button className="btn btn-primary whitespace-nowrap">Create project</button>
               </form>
             )}
+            {showPform && perr && <p className="alert alert-error mt-2">{perr}</p>}
 
             <div className="mt-5 grid max-w-3xl gap-4">
               {projects.map((p) => {

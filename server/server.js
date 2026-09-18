@@ -27,6 +27,9 @@ app.use('/api/admin', require('./src/routes/admin'));
 
 app.use((err, req, res, next) => {
   console.error(err);
+  if (err.name === 'ZodError') {
+    return res.status(400).json({ error: err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ') });
+  }
   res.status(err.status || 500).json({ error: err.message || 'Server error' });
 });
 
