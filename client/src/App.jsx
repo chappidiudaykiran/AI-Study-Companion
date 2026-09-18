@@ -74,9 +74,9 @@ function Sidebar() {
                 <line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.2" />
               </svg>
             </span>
-            <span className="min-w-0">
-              <span className="block whitespace-nowrap text-[14px] font-bold leading-tight">AI Study Companion</span>
-              <span className="block whitespace-nowrap text-[11px] text-text3">Learn from your documents</span>
+            <span className="min-w-0 text-center leading-tight">
+              <span className="block whitespace-nowrap text-[14px] font-bold">AI Study</span>
+              <span className="block whitespace-nowrap text-[14px] font-bold">Companion</span>
             </span>
           </span>
         ) : (
