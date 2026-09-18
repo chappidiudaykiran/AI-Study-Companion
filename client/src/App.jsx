@@ -2,7 +2,7 @@ import { Routes, Route, Navigate, Link, NavLink, useNavigate, useLocation } from
 import { useEffect, useRef, useState } from 'react';
 import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
-  Moon, Sun, Home as HomeIcon, ShieldCheck,
+  Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
   ListChecks,   TrendingUp, BarChart3, LayoutDashboard,
 } from 'lucide-react';
@@ -93,9 +93,13 @@ function Sidebar() {
       <div className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
         {onProject && lastProject ? (
           <>
-            <button onClick={() => nav(lastProject.spaceId ? `/?space=${lastProject.spaceId}` : '/')} className="nav-link flex w-full items-center gap-2 !py-2">
-              <ChevronLeft size={15} /> {!collapsed && <span className="truncate">{lastProject.spaceName || 'Space'}</span>}
+            <NavLink to="/" end className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+              <HomeIcon size={17} className="shrink-0" /> {!collapsed && 'Home'}
+            </NavLink>
+            <button onClick={() => nav(lastProject.spaceId ? `/?space=${lastProject.spaceId}` : '/')} title={lastProject.spaceName || 'Space'} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text2 transition hover:bg-surface hover:text-text">
+              <FolderOpen size={17} className="shrink-0" /> {!collapsed && <span className="truncate">{lastProject.spaceName || 'Space'}</span>}
             </button>
+            {!collapsed && <p className="label !mb-1 px-3 pt-2">Project</p>}
             {!collapsed && (
               <div className="rounded-xl border border-border bg-bg3 p-3">
                 <p className="flex items-center gap-2 font-semibold"><span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent">{(lastProject.name || 'P')[0]}</span><span className="truncate">{lastProject.name}</span></p>
