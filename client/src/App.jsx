@@ -2,7 +2,7 @@ import { Routes, Route, Navigate, Link, NavLink, useNavigate, useLocation } from
 import { useEffect, useRef, useState } from 'react';
 import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
-  BrainCircuit, Moon, Sun, Home as HomeIcon, ShieldCheck, LogOut,
+  Moon, Sun, Home as HomeIcon, ShieldCheck,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
   ListChecks,   TrendingUp, BarChart3, LayoutDashboard,
 } from 'lucide-react';
@@ -43,7 +43,6 @@ const TOOLS = [
 function Sidebar() {
   const nav = useNavigate();
   const location = useLocation();
-  const [dark, toggle] = useDark();
   const [collapsed, setCollapsed] = useState(false);
   const [spaces, setSpaces] = useState([]);
   const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -60,7 +59,6 @@ function Sidebar() {
     api.get('/api/spaces').then((r) => setSpaces(r.data.spaces || [])).catch(() => {});
   }, [location.pathname]);
 
-  const initial = ((user.name || user.email) || 'U')[0].toUpperCase();
   const W = collapsed ? 'w-16' : 'w-64';
 
   return (
@@ -146,20 +144,6 @@ function Sidebar() {
               );
             })}
           </>
-        )}
-      </div>
-
-      <div className="border-t border-border p-3">
-        {!collapsed ? (
-          <>
-            <div className="flex items-center justify-between px-1">
-              <p className="flex items-center gap-2 text-xs text-text2"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">{initial}</span><Link to="/profile" className="max-w-[120px] truncate hover:text-accent hover:underline" title={user.email}>{user.name || user.email}</Link></p>
-              <button onClick={toggle} className="btn btn-ghost !px-2 !py-1" title="Toggle theme">{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
-            </div>
-            <button onClick={() => { localStorage.clear(); nav('/login'); }} className="btn btn-outline mt-2 w-full !py-1.5 !text-xs"><LogOut size={14} /> Logout</button>
-          </>
-        ) : (
-          <button onClick={() => { localStorage.clear(); nav('/login'); }} className="btn btn-outline w-full !px-0 !py-1.5" title="Logout"><LogOut size={14} /></button>
         )}
       </div>
     </aside>
