@@ -83,7 +83,7 @@ export default function Login() {
       <div className="fade-up grid w-full max-w-4xl overflow-hidden rounded-3xl border border-border bg-bg2 shadow-xl md:grid-cols-2">
         {/* Left: product pitch */}
         <div className="hidden flex-col justify-center gap-4 bg-gradient-to-br from-accent to-accent2 p-8 text-white md:flex">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20"><BrainCircuit /></span>
+          <img src="/logo-dark.svg" alt="AI Study Companion" className="h-14 w-auto" />
           <h1 className="font-heading text-3xl font-extrabold leading-tight">Your learning, <br />measured & guided.</h1>
           <p className="text-sm text-white/85">Upload PDFs → grounded tutor with citations → adaptive quizzes → mastery growth.</p>
           <ul className="space-y-2 text-sm">
