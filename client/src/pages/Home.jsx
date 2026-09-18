@@ -88,7 +88,12 @@ export default function Home() {
   async function deleteSpace(e, id, name) {
     e.stopPropagation();
     if (!window.confirm(`Delete space "${name}" and ALL its projects and learning data? This cannot be undone.`)) return;
-    await api.delete(`/api/spaces/${id}`);
+    try {
+      await api.delete(`/api/spaces/${id}`);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Delete failed — try again');
+      return;
+    }
     if (selectedId === id) clearSelection();
     else loadSpaces();
   }
@@ -96,7 +101,12 @@ export default function Home() {
   async function deleteProject(e, id, name) {
     e.stopPropagation();
     if (!window.confirm(`Delete project "${name}" and ALL its materials, chats, quizzes and mastery? This cannot be undone.`)) return;
-    await api.delete(`/api/projects/${id}`);
+    try {
+      await api.delete(`/api/projects/${id}`);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Delete failed — try again');
+      return;
+    }
     selectSpace(selectedId);
   }
 

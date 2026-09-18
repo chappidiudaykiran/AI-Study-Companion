@@ -58,6 +58,7 @@ export default function Project() {
   const [rec, setRec] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [materials, setMaterials] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
 
   async function loadMaterials() {
     try {
@@ -72,8 +73,15 @@ export default function Project() {
 
   async function deleteMaterial(mid, name) {
     if (!window.confirm(`Delete "${name}"? Its chunks and jobs go too. This cannot be undone.`)) return;
-    await api.delete(`/api/materials/${mid}`);
-    loadMaterials();
+    setDeletingId(mid);
+    try {
+      await api.delete(`/api/materials/${mid}`);
+      await loadMaterials();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Delete failed — try again');
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   // Tab switches go through the URL so the global sidebar stays in sync
@@ -320,8 +328,8 @@ export default function Project() {
                         <span className="text-xs text-text3">{m.pages || '?'} pages · {new Date(m.createdAt).toLocaleDateString()}</span>
                       </span>
                       <span className={`badge ${m.status === 'ready' ? 'badge-low' : m.status === 'failed' ? 'badge-high' : 'badge-medium'}`}>{m.status}</span>
-                      <button onClick={() => deleteMaterial(m._id, m.filename)} title={`Delete ${m.filename}`} className="rounded-lg p-1.5 text-text3 transition hover:bg-red-50 hover:text-red-600">
-                        <Trash2 size={15} />
+                      <button onClick={() => deleteMaterial(m._id, m.filename)} disabled={deletingId === m._id} title={`Delete ${m.filename}`} className="rounded-lg p-1.5 text-text3 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
+                        {deletingId === m._id ? <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-border2 border-t-red-600" /> : <Trash2 size={15} />}
                       </button>
                     </div>
                   ))}
