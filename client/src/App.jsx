@@ -2,7 +2,7 @@ import { Routes, Route, Navigate, Link, NavLink, useNavigate, useLocation } from
 import { useEffect, useRef, useState } from 'react';
 import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
-  Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen,
+  Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen, LayoutGrid, Plus,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
   ListChecks,   TrendingUp, BarChart3, LayoutDashboard,
 } from 'lucide-react';
@@ -47,6 +47,12 @@ function Sidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [spaces, setSpaces] = useState([]);
+  const [showSpaceForm, setShowSpaceForm] = useState(false);
+  const [spaceName, setSpaceName] = useState('');
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [projName, setProjName] = useState('');
+  const [projGoal, setProjGoal] = useState('');
+  const [formErr, setFormErr] = useState('');
   const user = JSON.parse(localStorage.getItem('user') || 'null');
   if (!user) return null;
 
@@ -58,8 +64,47 @@ function Sidebar() {
 
   useEffect(() => {
     if (onProject) return;
-    api.get('/api/spaces').then((r) => setSpaces(r.data.spaces || [])).catch(() => {});
+    loadSpaces();
   }, [location.pathname]);
+
+  async function loadSpaces() {
+    try {
+      const r = await api.get('/api/spaces');
+      setSpaces(r.data.spaces || []);
+    } catch {}
+  }
+
+  async function createSpace(e) {
+    e.preventDefault();
+    setFormErr('');
+    if (spaceName.trim().length < 2) return setFormErr('Name needs at least 2 characters');
+    try {
+      const { data } = await api.post('/api/spaces', { name: spaceName.trim() });
+      setSpaceName('');
+      setShowSpaceForm(false);
+      await loadSpaces();
+      if (data.space) nav(`/?space=${data.space._id}`);
+    } catch (err) {
+      setFormErr(err.response?.data?.error || 'Could not create space');
+    }
+  }
+
+  async function createProject(e) {
+    e.preventDefault();
+    setFormErr('');
+    if (projName.trim().length < 2) return setFormErr('Project name needs at least 2 characters');
+    if (projGoal.trim().length < 5) return setFormErr('Goal needs at least 5 characters');
+    try {
+      await api.post('/api/projects', { spaceId: activeSpaceId, name: projName.trim(), description: '', goal: projGoal.trim() });
+      setProjName('');
+      setProjGoal('');
+      setShowProjectForm(false);
+      await loadSpaces();
+      nav(`/?space=${activeSpaceId}`);
+    } catch (err) {
+      setFormErr(err.response?.data?.error || 'Could not create project');
+    }
+  }
 
   const W = collapsed ? 'w-16' : 'w-64';
 
@@ -133,29 +178,59 @@ function Sidebar() {
           </>
         ) : (
           <>
-            <NavLink to="/" end className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
-              <HomeIcon size={17} className="shrink-0" /> {!collapsed && 'Spaces'}
-            </NavLink>
-            {user.isAdmin && (
-              <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
-                <ShieldCheck size={17} className="shrink-0" /> {!collapsed && 'Admin'}
-              </NavLink>
-            )}
-            {!collapsed && <p className="label !mb-1 px-3 pt-3">Spaces</p>}
-            {spaces.map((s) => {
-              const active = activeSpaceId === s._id;
-              return (
-              <button
-                key={s._id}
-                onClick={() => nav(`/?space=${s._id}`)}
-                title={s.name}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${active ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}
-              >
-                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-white text-xs font-bold">{(s.name || 'S')[0].toUpperCase()}</span>
-                {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">{s.name}</span><span className="block text-xs text-text3">{s.projects ?? ''} projects</span></span>}
+            <button
+              onClick={() => nav('/')}
+              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${!activeSpaceId ? 'border-border bg-bg3' : 'border-transparent hover:bg-surface'}`}
+            >
+              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white"><LayoutGrid size={16} /></span>
+              {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">Spaces</span><span className="block text-xs text-text3">Manage learning spaces</span></span>}
+            </button>
+            {!collapsed && (
+              <button onClick={() => { setShowSpaceForm(!showSpaceForm); setFormErr(''); }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+                + Create Space
               </button>
+            )}
+            {!collapsed && showSpaceForm && (
+              <form onSubmit={createSpace} className="mt-1 space-y-2 rounded-xl border border-border bg-bg3 p-3">
+                <input value={spaceName} onChange={(e) => setSpaceName(e.target.value)} placeholder="Space name (min 2 chars)" className="input !py-2 !text-xs" />
+                <button className="btn btn-primary w-full !py-1.5 !text-xs">Create space</button>
+                {formErr && <p className="text-xs text-red-600">{formErr}</p>}
+              </form>
+            )}
+            {(() => {
+              const sel = spaces.find((s) => s._id === activeSpaceId);
+              if (!sel) return null;
+              return (
+              <>
+                <button onClick={() => nav('/')} className="mt-2 flex w-full items-center gap-1 px-3 text-sm font-medium text-text2 hover:text-text">
+                  <span aria-hidden>←</span> {!collapsed && 'Spaces'}
+                </button>
+                <button onClick={() => nav(`/?space=${sel._id}`)} className="flex w-full items-center gap-2.5 rounded-xl border border-border bg-bg3 px-3 py-2.5 text-left">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">{(sel.name || 'S')[0].toUpperCase()}</span>
+                  {!collapsed && <span className="min-w-0 text-left"><span className="block truncate text-sm font-semibold">{sel.name}</span><span className="block text-xs text-text3">{sel.projects ?? 0} project{(sel.projects ?? 0) === 1 ? '' : 's'}</span></span>}
+                </button>
+                {!collapsed && (
+                <>
+                  <p className="label !mb-0 px-3 pt-2">Projects</p>
+                  <button onClick={() => nav(`/?space=${sel._id}`)} className="px-3 text-left text-[13px] text-text2 hover:text-accent hover:underline">
+                    View all projects in this space →
+                  </button>
+                  <button onClick={() => { setShowProjectForm(!showProjectForm); setFormErr(''); }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+                    + Create Project
+                  </button>
+                  {showProjectForm && (
+                  <form onSubmit={createProject} className="mt-1 space-y-2 rounded-xl border border-border bg-bg3 p-3">
+                    <input value={projName} onChange={(e) => setProjName(e.target.value)} placeholder="Project name (min 2)" className="input !py-2 !text-xs" />
+                    <input value={projGoal} onChange={(e) => setProjGoal(e.target.value)} placeholder="Goal (min 5 chars)" className="input !py-2 !text-xs" />
+                    <button className="btn btn-primary w-full !py-1.5 !text-xs">Create project</button>
+                    {formErr && <p className="text-xs text-red-600">{formErr}</p>}
+                  </form>
+                  )}
+                </>
+                )}
+              </>
               );
-            })}
+            })()}
             {!collapsed && <p className="label !mb-1 px-3 pt-3">Insights</p>}
             <NavLink to="/dashboard" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
               <LayoutDashboard size={17} className="shrink-0" /> {!collapsed && 'Dashboard'}
