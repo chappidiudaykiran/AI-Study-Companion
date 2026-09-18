@@ -5,6 +5,9 @@ const Mastery = require('../models/Mastery');
 const Attempt = require('../models/Attempt');
 const Event = require('../models/Event');
 const Project = require('../models/Project');
+const Space = require('../models/Space');
+const Material = require('../models/Material');
+const Message = require('../models/Message');
 const Recommendation = require('../models/Recommendation');
 const { buildRecommendation, growthBuckets } = require('../services/recommendService');
 
@@ -48,6 +51,14 @@ router.get('/analytics/global', async (req, res, next) => {
       Event.find({ user: req.user._id }).sort({ at: -1 }).limit(100).lean(),
       Project.find({ user: req.user._id }).sort({ updatedAt: -1 }).limit(5).populate('space', 'name').lean(),
     ]);
+    const [spaces, materials, tutorAnswers, masteryAll, recs] = await Promise.all([
+      Space.countDocuments({ user: req.user._id }),
+      Material.countDocuments({ user: req.user._id }),
+      Message.countDocuments({ user: req.user._id, role: 'assistant' }),
+      Mastery.find({ user: req.user._id }).select('score').lean(),
+      Recommendation.countDocuments({ user: req.user._id }),
+    ]);
+    const masteryAvg = masteryAll.length ? Math.round(masteryAll.reduce((s, m) => s + m.score, 0) / masteryAll.length) : 0;
     const avg = attempts.length ? Math.round(attempts.reduce((s, a) => s + (a.score || 0), 0) / attempts.length) : 0;
     const byType = {};
     events.forEach((e) => { byType[e.type] = (byType[e.type] || 0) + 1; });
@@ -66,6 +77,13 @@ router.get('/analytics/global', async (req, res, next) => {
       avgScore: avg,
       byType,
       recentEvents: events.slice(0, 20),
+      spaces,
+      projectsCount: await Project.countDocuments({ user: req.user._id }),
+      materials: materials,
+      tutorAnswers,
+      quizCount: byType['quiz.started'] || 0,
+      masteryAvg,
+      recs,
       recentProjects: projects.map((p) => ({ id: p._id, name: p.name, goal: p.goal, space: p.space?.name || '' })),
       attention: weak.map((w) => ({ concept: w.concept, score: w.score, mistakes: w.mistakes, project: w.project?.name || '', projectId: w.project?._id || null })),
       nextAction: nextRec ? { text: nextRec.text, project: nextRec.project?.name || '', projectId: nextRec.project?._id || null } : null,
