@@ -197,23 +197,9 @@ function Sidebar() {
             </button>
             )}
             {!collapsed && !selSpace && (
-              <button onClick={() => { setShowSpaceForm(true); setFormErr(''); }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+              <button onClick={() => nav('/?createSpace=1')} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
                 + Create Space
               </button>
-            )}
-            {showSpaceForm && (
-              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowSpaceForm(false)}>
-                <form onSubmit={createSpace} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-border bg-bg2 p-5 shadow-xl">
-                  <h3 className="font-heading text-lg font-bold">Create a space</h3>
-                  <input autoFocus value={spaceName} onChange={(e) => setSpaceName(e.target.value)} placeholder="Name (min 2 chars)" className="input mt-3" />
-                  <input value={spaceDesc} onChange={(e) => setSpaceDesc(e.target.value)} placeholder="Short description (optional)" className="input mt-2" />
-                  {formErr && <p className="mt-2 text-xs text-red-600">{formErr}</p>}
-                  <div className="mt-3 flex gap-2">
-                    <button type="button" onClick={() => setShowSpaceForm(false)} className="btn btn-outline flex-1">Cancel</button>
-                    <button className="btn btn-primary flex-1">Create</button>
-                  </div>
-                </form>
-              </div>
             )}
             {(() => {
               const sel = spaces.find((s) => s._id === activeSpaceId);
@@ -238,24 +224,9 @@ function Sidebar() {
                 {!spaceProjects.length && !collapsed && <p className="px-3 text-xs text-text3">No projects yet — create one below.</p>}
                 {!collapsed && (
                 <>
-                  <button onClick={() => { setShowProjectForm(true); setFormErr(''); }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+                  <button onClick={() => nav(`/?space=${sel._id}&newProject=1`)} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
                     + Create Project
                   </button>
-                  {showProjectForm && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowProjectForm(false)}>
-                      <form onSubmit={createProject} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl border border-border bg-bg2 p-5 shadow-xl">
-                        <h3 className="font-heading text-lg font-bold">Create a project</h3>
-                        <p className="text-xs text-text3">in {sel.name}</p>
-                        <input autoFocus value={projName} onChange={(e) => setProjName(e.target.value)} placeholder="Project name (min 2)" className="input mt-3" />
-                        <input value={projGoal} onChange={(e) => setProjGoal(e.target.value)} placeholder="Learning goal (min 5 chars)" className="input mt-2" />
-                        {formErr && <p className="mt-2 text-xs text-red-600">{formErr}</p>}
-                        <div className="mt-3 flex gap-2">
-                          <button type="button" onClick={() => setShowProjectForm(false)} className="btn btn-outline flex-1">Cancel</button>
-                          <button className="btn btn-primary flex-1">Create</button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
                 </>
                 )}
               </>

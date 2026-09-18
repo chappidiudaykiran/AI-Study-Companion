@@ -22,6 +22,7 @@ export default function Home() {
   const [projects, setProjects] = useState([]);
   const [spaceDetail, setSpaceDetail] = useState(null);
   const [form, setForm] = useState({ name: '', description: '' });
+  const [cerr, setCerr] = useState('');
   const [pform, setPform] = useState({ name: '', goal: '' });
   const [showPform, setShowPform] = useState(false);
   const [perr, setPerr] = useState('');
@@ -94,11 +95,16 @@ export default function Home() {
 
   async function createSpace(e) {
     e.preventDefault();
-    if (!form.name.trim()) return;
-    const { data } = await api.post('/api/spaces', form);
+    setCerr('');
+    if (form.name.trim().length < 2) return setCerr('Space name needs at least 2 characters');
+    try {
+      const { data } = await api.post('/api/spaces', { name: form.name.trim(), description: form.description.trim() });
     setForm({ name: '', description: '' });
     await loadSpaces();
     if (data.space) selectSpace(data.space._id);
+    } catch (err) {
+      setCerr(err.response?.data?.error || 'Could not create space — try again');
+    }
   }
 
   async function deleteSpace(e, id, name) {
@@ -169,10 +175,11 @@ export default function Home() {
             <div ref={createSpaceRef} className="card fade-up-2">
               <h2 className="font-heading text-lg font-bold">Create a space</h2>
               <form onSubmit={createSpace} className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <input className="input flex-1" placeholder="e.g. Machine Learning" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                <input className="input flex-1" placeholder="e.g. Machine Learning" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} />
                 <input className="input flex-1" placeholder="Short description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 <button className="btn btn-primary"><Plus size={16} /> Create</button>
               </form>
+              {cerr && <p className="alert alert-error mt-2 !mb-0">{cerr}</p>}
             </div>
             )}
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
