@@ -8,6 +8,14 @@ function initial(name) {
   return (name || 'S').trim().charAt(0).toUpperCase();
 }
 
+const isAdmin = (() => {
+  try {
+    return !!JSON.parse(localStorage.getItem('user') || '{}').isAdmin;
+  } catch {
+    return false;
+  }
+})();
+
 export default function Home() {
   const [spaces, setSpaces] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -108,7 +116,9 @@ export default function Home() {
             <div className="page-header fade-up">
               <h1 className="page-title">Your <span className="hero-gradient-text">spaces</span></h1>
               <p className="page-subtitle">{spaces.length} space(s). Select a space to open its workspace.</p>
+              {isAdmin && <p className="alert alert-info mt-3">Admin view — read-only. Manage the platform from the <Link to="/admin" className="font-semibold underline">Admin dashboard</Link>.</p>}
             </div>
+            {!isAdmin && (
             <div className="card fade-up-2">
               <h2 className="font-heading text-lg font-bold">Create a space</h2>
               <form onSubmit={createSpace} className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -117,6 +127,7 @@ export default function Home() {
                 <button className="btn btn-primary"><Plus size={16} /> Create</button>
               </form>
             </div>
+            )}
             <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {spaces.map((s) => (
                 <button key={s._id} onClick={() => selectSpace(s._id)} className="rounded-2xl border border-border bg-white p-5 text-left shadow-sm transition hover:border-[#a5b4fc]">
@@ -138,12 +149,16 @@ export default function Home() {
                 <h1 className="mt-1 font-heading text-3xl font-extrabold text-text">{selected.name}</h1>
                 <p className="mt-1 text-sm text-text2">{projects.length} project{projects.length === 1 ? '' : 's'} in this space. Select a project to open its workspace.</p>
               </div>
+              {!isAdmin ? (
               <button onClick={() => setShowPform((v) => !v)} className="rounded-lg bg-[#4338ca] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4f46e5]">
                 + New Project
               </button>
+              ) : (
+              <p className="text-xs text-text3">Admin view — read-only</p>
+              )}
             </div>
 
-            {showPform && (
+            {!isAdmin && showPform && (
               <form onSubmit={createProject} className="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 sm:flex-row">
                 <input className="input flex-1" placeholder="Project name (min 2 chars)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required minLength={2} />
                 <input className="input flex-1" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required minLength={5} />
