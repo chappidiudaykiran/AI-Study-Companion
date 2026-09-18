@@ -52,4 +52,49 @@ router.get('/me', auth, (req, res) => {
   res.json({ user: req.user });
 });
 
+const profileSchema = z.object({
+  name: z.string().min(2).max(60).optional(),
+  email: z.string().email().optional(),
+});
+
+// PATCH /api/auth/profile — edit name/email
+router.patch('/profile', auth, async (req, res, next) => {
+  try {
+    const data = profileSchema.parse(req.body);
+    if (data.email && data.email.toLowerCase() !== req.user.email) {
+      const exists = await User.findOne({ email: data.email.toLowerCase() });
+      if (exists) return res.status(409).json({ error: 'Email already used' });
+      req.user.email = data.email.toLowerCase();
+    }
+    if (data.name) req.user.name = data.name.trim();
+    await req.user.save();
+    res.json({ user: { id: req.user._id, name: req.user.name, email: req.user.email, isAdmin: req.user.isAdmin, createdAt: req.user.createdAt } });
+  } catch (e) {
+    next(e);
+  }
+});
+
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1).max(100),
+  newPassword: z.string().min(6).max(100),
+});
+
+// POST /api/auth/change-password — verify current, set new
+router.post('/change-password', auth, async (req, res, next) => {
+  try {
+    const data = passwordSchema.parse(req.body);
+    const user = await User.findById(req.user._id);
+    const ok = await bcrypt.compare(data.currentPassword, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'Current password is incorrect' });
+    if (data.currentPassword === data.newPassword) {
+      return res.status(400).json({ error: 'New password must differ from current' });
+    }
+    user.passwordHash = await bcrypt.hash(data.newPassword, 10);
+    await user.save();
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
 module.exports = router;

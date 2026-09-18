@@ -11,6 +11,7 @@ import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
 import Project from './pages/Project.jsx';
 import Admin from './pages/Admin.jsx';
+import Profile from './pages/Profile.jsx';
 
 function guard(el) {
   return localStorage.getItem('token') ? el : <Navigate to="/login" />;
@@ -63,12 +64,13 @@ function Sidebar() {
   return (
     <aside className={`fixed inset-y-0 left-0 z-[100] hidden ${W} flex-col border-r border-border bg-bg2 transition-all lg:flex`}>
       <div className="flex items-center gap-2 px-4 pt-4">
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white"><BrainCircuit size={20} /></span>
-        {!collapsed && (
-          <span className="min-w-0">
-            <span className="nav-logo block !text-base leading-tight">AI Study Companion</span>
-            <span className="block truncate text-[11px] text-text3">Learn from your documents</span>
+        {!collapsed ? (
+          <span className="min-w-0 flex-1">
+            <img src="/logo-light.svg" alt="AI Study Companion" className="h-11 w-auto dark:hidden" />
+            <img src="/logo-dark.svg" alt="AI Study Companion" className="hidden h-11 w-auto dark:block" />
           </span>
+        ) : (
+          <img src="/logo-icon.svg" alt="AI Study Companion" className="h-9 w-9 shrink-0" />
         )}
         <button onClick={() => setCollapsed(!collapsed)} className="btn-ghost btn ml-auto !px-1.5" title="Collapse">
           {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
@@ -136,7 +138,7 @@ function Sidebar() {
         {!collapsed ? (
           <>
             <div className="flex items-center justify-between px-1">
-              <p className="flex items-center gap-2 text-xs text-text2"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">{initial}</span><span className="max-w-[120px] truncate" title={user.email}>{user.name || user.email}</span></p>
+              <p className="flex items-center gap-2 text-xs text-text2"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">{initial}</span><Link to="/profile" className="max-w-[120px] truncate hover:text-accent hover:underline" title={user.email}>{user.name || user.email}</Link></p>
               <button onClick={toggle} className="btn btn-ghost !px-2 !py-1" title="Toggle theme">{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
             </div>
             <button onClick={() => { localStorage.clear(); nav('/login'); }} className="btn btn-outline mt-2 w-full !py-1.5 !text-xs"><LogOut size={14} /> Logout</button>
@@ -160,7 +162,9 @@ function Topbar() {
       <div className="container flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Link to="/" className="flex items-center gap-2 lg:hidden">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white"><BrainCircuit size={20} /></span>
+            <img src="/logo-icon.svg" alt="AI Study Companion" className="h-9 w-9" />
+            <img src="/logo-light.svg" alt="AI Study Companion" className="h-8 w-auto dark:hidden" />
+            <img src="/logo-dark.svg" alt="AI Study Companion" className="hidden h-8 w-auto dark:block" />
           </Link>
           <nav className="flex min-w-0 items-center gap-1.5 truncate text-sm">
             {crumbs.length ? crumbs.map((c, i) => (
@@ -176,7 +180,7 @@ function Topbar() {
           {user ? (
             <span className="flex items-center gap-2 text-sm" title={user.email}>
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{initial}</span>
-              <span className="hidden max-w-[200px] truncate text-text2 xl:inline" title={user.email}>{user.name || user.email}</span>
+              <Link to="/profile" className="hidden max-w-[200px] truncate text-text2 hover:text-accent hover:underline xl:inline" title={`${user.name || ''} · ${user.email}`}>{user.name || user.email}</Link>
               <button onClick={() => { localStorage.clear(); nav('/login'); }} className="btn btn-outline !px-3 !py-1.5">Logout</button>
             </span>
           ) : (
@@ -204,6 +208,7 @@ export default function App() {
               <Route path="/" element={guard(<Home />)} />
               <Route path="/project/:id" element={guard(<Project />)} />
               <Route path="/admin" element={guard(<Admin />)} />
+              <Route path="/profile" element={guard(<Profile />)} />
             </Routes>
           </main>
           <footer className="container pb-10 text-xs text-text3">
