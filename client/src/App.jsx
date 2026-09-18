@@ -12,6 +12,8 @@ import Login from './pages/Login.jsx';
 import Project from './pages/Project.jsx';
 import Admin from './pages/Admin.jsx';
 import Profile from './pages/Profile.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 
 function guard(el) {
   return localStorage.getItem('token') ? el : <Navigate to="/login" />;
@@ -194,7 +196,7 @@ function Topbar() {
 
 export default function App() {
   const location = useLocation();
-  const isAuth = location.pathname === '/login';
+  const isAuth = ['/login', '/forgot-password', '/reset-password'].includes(location.pathname);
   const [crumbs, setCrumbs] = useState([]);
   return (
     <CrumbCtx.Provider value={{ crumbs, setCrumbs }}>
@@ -205,6 +207,8 @@ export default function App() {
           <main className={isAuth ? '' : 'page'}>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={guard(<Home />)} />
               <Route path="/project/:id" element={guard(<Project />)} />
               <Route path="/admin" element={guard(<Admin />)} />

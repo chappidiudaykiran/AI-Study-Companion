@@ -1,10 +1,12 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { z } = require('zod');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimit');
+const { sendResetMail, isConfigured } = require('../services/mailer');
 
 const router = express.Router();
 
@@ -90,6 +92,49 @@ router.post('/change-password', auth, async (req, res, next) => {
       return res.status(400).json({ error: 'New password must differ from current' });
     }
     user.passwordHash = await bcrypt.hash(data.newPassword, 10);
+    await user.save();
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+// POST /api/auth/forgot-password {email} — always generic reply (no account leak)
+router.post('/forgot-password', authLimiter, async (req, res, next) => {
+  try {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+    const generic = { ok: true, message: 'If an account exists for this email, a reset link was sent' };
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) return res.json(generic);
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save();
+    const link = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+    const sent = await sendResetMail({ to: user.email, name: user.name, link });
+    // Dev convenience only: expose link when no SMTP is configured AND not production
+    if (sent.dev && process.env.NODE_ENV !== 'production') {
+      return res.json({ ...generic, devLink: link });
+    }
+    res.json(generic);
+  } catch (e) {
+    next(e);
+  }
+});
+
+// POST /api/auth/reset-password {token, newPassword}
+router.post('/reset-password', authLimiter, async (req, res, next) => {
+  try {
+    const data = z.object({ token: z.string().min(10).max(200), newPassword: z.string().min(6).max(100) }).parse(req.body);
+    const hash = crypto.createHash('sha256').update(data.token).digest('hex');
+    const user = await User.findOne({
+      resetTokenHash: hash,
+      resetTokenExpiry: { $gt: new Date() },
+    }).select('+resetTokenHash +resetTokenExpiry');
+    if (!user) return res.status(400).json({ error: 'Reset link is invalid or expired' });
+    user.passwordHash = await bcrypt.hash(data.newPassword, 10);
+    user.resetTokenHash = null;
+    user.resetTokenExpiry = null;
     await user.save();
     res.json({ ok: true });
   } catch (e) {

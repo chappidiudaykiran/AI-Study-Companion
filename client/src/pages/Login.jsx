@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { BrainCircuit, MessagesSquare, ListChecks, TrendingUp, ArrowRight, Eye, EyeOff, Wand2 } from 'lucide-react';
 import api from '../api/client.js';
 
@@ -141,6 +141,7 @@ export default function Login() {
               )}
             </div>
             <button className="btn btn-primary w-full" disabled={loading}>{loading ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create account'} <ArrowRight size={15} /></button>
+            {mode === 'login' && <Link to="/forgot-password" className="block text-center text-sm text-accent hover:underline">Forgot password?</Link>}
           </form>
           {err && <p className="alert alert-error mt-3">{err}{err === 'Email already used' ? ' — click “Have account? Login” above.' : ''}</p>}
         </div>
