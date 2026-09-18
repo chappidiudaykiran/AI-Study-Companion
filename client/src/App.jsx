@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
   BrainCircuit, Moon, Sun, Home as HomeIcon, ShieldCheck, LogOut,
@@ -155,10 +155,30 @@ function Sidebar() {
 
 function Topbar() {
   const nav = useNavigate();
+  const location = useLocation();
   const [dark, toggle] = useDark();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
   const { crumbs } = useCrumbs();
   const user = JSON.parse(localStorage.getItem('user') || 'null');
   const initial = (((user?.name || user?.email)) || 'U')[0].toUpperCase();
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    function onDoc(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
+  function signOut() {
+    localStorage.clear();
+    nav('/login');
+  }
   return (
     <header className="navbar lg:left-60">
       <div className="container flex items-center justify-between gap-2">
@@ -180,10 +200,26 @@ function Topbar() {
         <div className="flex shrink-0 items-center gap-2">
           <button onClick={toggle} className="btn-ghost btn !px-2" title="Toggle theme">{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
           {user ? (
-            <span className="flex items-center gap-2 text-sm" title={user.email}>
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{initial}</span>
-              <Link to="/profile" className="hidden max-w-[200px] truncate text-text2 hover:text-accent hover:underline xl:inline" title={`${user.name || ''} · ${user.email}`}>{user.name || user.email}</Link>
-              <button onClick={() => { localStorage.clear(); nav('/login'); }} className="btn btn-outline !px-3 !py-1.5">Logout</button>
+            <span className="relative" ref={menuRef} title={user.email}>
+              <button onClick={() => setOpen(!open)} className="flex items-center gap-2 rounded-full border border-border bg-bg2 py-1 pl-1 pr-3 transition hover:border-border2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{initial}</span>
+                <span className="hidden max-w-[160px] truncate text-sm font-medium md:inline">{user.name || user.email}</span>
+              </button>
+              {open && (
+                <div className="absolute right-0 top-11 z-[200] w-64 overflow-hidden rounded-2xl border border-border bg-bg2 shadow-xl">
+                  <div className="flex items-center gap-3 border-b border-border p-4">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-white">{initial}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">{user.name || 'Account'}</span>
+                      <span className="block truncate text-xs text-text3">{user.email}</span>
+                    </span>
+                  </div>
+                  <div className="p-2">
+                    <button onClick={() => { setOpen(false); nav('/profile'); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-surface">View profile & settings</button>
+                    <button onClick={signOut} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-surface">Sign out</button>
+                  </div>
+                </div>
+              )}
             </span>
           ) : (
             <Link to="/login" className="btn btn-primary !px-3 !py-1.5">Login</Link>

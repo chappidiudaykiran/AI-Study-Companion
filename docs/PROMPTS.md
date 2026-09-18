@@ -1,6 +1,6 @@
 # ALL PROMPTS — single canonical file (§20.6)
-> Rule: this file is updated on EVERY prompt change (product or dev).
-> Last updated: gap-fill completion (v2.0) — Inception/Gemini via `AI_PROVIDER`.
+> Rule: this file is updated on EVERY prompt change (product or dev) — committed alongside the code.
+> Last updated: forgot-password + profile dropdown (post-v2.0).
 
 ## A. Product prompts (exact, as in code)
 
@@ -92,6 +92,7 @@ matching the required schema, output JSON only:` + truncated output. Then throw 
 - AI: "Cosine top-k retrieval filtered by projectId + keyword fallback + page citations" / "Tutor prompt treating PDF as data, refusal on low evidence, JSON citations" / "Adaptive selector (mastery+mistakes, not wrong→easy) + open grading rubric"
 - Frontend/Docs: "Ecurve-themed pages: login/home/project tabs/admin" / "ARCHITECTURE, AI_USAGE, EVALUATION, LIMITATIONS + eval cases + seed"
 - Gap-fill: "LearningContext + tutor profile injection; mistake-pattern recs" / "30s timeouts, rate-limit tiers, Zod schemas for AI outputs" / "Home continue/attention/next; overview tab; space stats" / "Admin journey, filters, live eval endpoint" / "Real tokens, cost pricing, retrieval tracing; rec cache; parallel quiz-gen" / "Mermaid arch, live eval table, README, video script, deploy configs" / "Orphan-job recovery on worker startup"
+- Post-gap: "Single global sidebar + crumbs + ?space=/?tab= deep-links; tutor Sources panel + DELETE history" / "Readable 400 validation errors; visible project-create failures" / "Admin read-only Home" / "Login validation + password suggest + navbar name" / "SVG logo set (light/dark/icon)" / "Profile page (edit + password change)" / "Forgot/reset password via mail (hashed single-use tokens)" / "Navbar profile dropdown (view profile, sign out)"
 
 ## D. Model & parameters
 - `AI_PROVIDER=gemini` → `gemini-2.5-flash` + `text-embedding-004`; `=inception` → `mercury-2.5` (`reasoning_effort: low`).
