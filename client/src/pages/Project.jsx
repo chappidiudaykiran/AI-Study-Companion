@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
@@ -52,6 +52,11 @@ export default function Project() {
   const [q, setQ] = useState('');
   const [chat, setChat] = useState([]);
   const [asking, setAsking] = useState(false);
+  const chatBoxRef = useRef(null);
+
+  useEffect(() => {
+    chatBoxRef.current?.scrollTo({ top: chatBoxRef.current.scrollHeight, behavior: 'smooth' });
+  }, [chat, asking, tab]);
   const [questions, setQuestions] = useState([]);
   const [mastery, setMastery] = useState([]);
   const [growth, setGrowth] = useState([]);
@@ -357,15 +362,15 @@ export default function Project() {
           )}
 
           {tab === 'tutor' && (
-            <div className="card fade-up mt-4 !p-0 overflow-hidden">
-              <div className="flex items-center gap-2 border-b border-border bg-bg3 px-4 py-3">
+            <div className="card fade-up mt-4 flex h-[calc(100vh-230px)] min-h-[480px] !p-0 overflow-hidden flex-col">
+              <div className="flex shrink-0 items-center gap-2 border-b border-border bg-bg3 px-4 py-3">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white"><Bot size={17} /></span>
                 <div>
                   <p className="text-sm font-bold">AI Tutor</p>
                   <p className="text-xs text-text3">Grounded in your PDFs · cites doc + page · refuses off-topic</p>
                 </div>
               </div>
-              <div className="space-y-3 bg-bg px-4 py-4">
+              <div ref={chatBoxRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-bg px-4 py-4">
                 {!chat.length && !asking && (
                   <div className="mx-auto mt-10 max-w-sm text-center">
                     <Sparkles size={28} className="mx-auto text-accent" />
@@ -401,7 +406,7 @@ export default function Project() {
                   </div>
                 )}
               </div>
-              <div className="sticky bottom-0 border-t border-border bg-bg2 px-4 py-3">
+              <div className="shrink-0 border-t border-border bg-bg2 px-4 py-3">
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {SUGGESTIONS.map((s) => (
                     <button key={s} onClick={() => sendText(s)} disabled={asking} className="rounded-full border border-border bg-bg3 px-2.5 py-1 text-xs text-text2 hover:border-accent hover:text-accent disabled:opacity-50">{s}</button>
