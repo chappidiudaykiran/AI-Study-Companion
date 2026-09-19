@@ -809,13 +809,13 @@ export default function Project() {
             const weakest3 = sorted.slice(0, 3);
             const nextText = adaptive?.current?.text || rec?.text;
             const steps = [
-              { label: 'Materials', tab: 'materials', sub: materials.length ? `${materials.length} PDF${materials.length > 1 ? 's' : ''}` : 'Upload a PDF', done: materials.length > 0 },
-              { label: 'Tutor', tab: 'tutor', sub: sessions.length ? `${sessions.length} chat${sessions.length > 1 ? 's' : ''}` : 'Ask anything', done: sessions.length > 0 },
-              { label: 'Quiz', tab: 'quiz', sub: quizN ? `${quizN} attempt${quizN > 1 ? 's' : ''}` : 'Test yourself', done: quizN > 0 },
-              { label: 'Practice', tab: 'practice', sub: practiceN ? `${practiceN} paper${practiceN > 1 ? 's' : ''}` : 'Exam mode', done: practiceN > 0 },
-              { label: 'Mastery', tab: 'dashboard', sub: mastery.length ? `${avg}% avg` : 'No scores yet', done: mastery.length > 0 },
-              { label: 'Growth', tab: 'growth', sub: growth.length ? 'Tracking' : 'No history', done: growth.length > 0 },
-              { label: 'Next step', tab: 'recommendations', sub: nextText ? 'Ready for you' : 'Do any task', done: !!nextText },
+              { label: 'Materials', tab: 'materials', Icon: UploadCloud, sub: materials.length ? `${materials.length} PDF${materials.length > 1 ? 's' : ''}` : 'Upload a PDF', done: materials.length > 0 },
+              { label: 'Tutor', tab: 'tutor', Icon: MessagesSquare, sub: sessions.length ? `${sessions.length} chat${sessions.length > 1 ? 's' : ''}` : 'Ask anything', done: sessions.length > 0 },
+              { label: 'Quiz', tab: 'quiz', Icon: ListChecks, sub: quizN ? `${quizN} attempt${quizN > 1 ? 's' : ''}` : 'Test yourself', done: quizN > 0 },
+              { label: 'Practice', tab: 'practice', Icon: PenLine, sub: practiceN ? `${practiceN} paper${practiceN > 1 ? 's' : ''}` : 'Exam mode', done: practiceN > 0 },
+              { label: 'Mastery', tab: 'dashboard', Icon: Target, sub: mastery.length ? `${avg}% avg` : 'No scores yet', done: mastery.length > 0 },
+              { label: 'Growth', tab: 'growth', Icon: BarChart3, sub: growth.length ? 'Tracking' : 'No history', done: growth.length > 0 },
+              { label: 'Next step', tab: 'recommendations', Icon: Compass, sub: nextText ? 'Ready for you' : 'Do any task', done: !!nextText },
             ];
             const doneCount = steps.filter((s) => s.done).length;
             const curIdx = steps.findIndex((s) => !s.done);
@@ -832,22 +832,35 @@ export default function Project() {
             <div className="mt-4 space-y-4">
               {/* Journey path — where you are in the loop, what comes next */}
               <div className="card fade-up">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-heading font-bold">Your learning journey</h3>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="font-heading font-bold">Your learning journey</h3>
+                    <p className="text-xs text-text3">7 stages from upload to next step — tap any stage to jump in.</p>
+                  </div>
                   <span className="badge badge-info">{doneCount}/7 complete</span>
                 </div>
-                <div className="mt-3 flex items-stretch gap-0.5 overflow-x-auto pb-1">
-                  {steps.map((s, i) => (
-                    <div key={s.label} className="flex min-w-[118px] flex-1 items-stretch">
-                      <button onClick={() => goTab(s.tab)} title={`${s.label}: ${s.sub}`} className={`flex-1 rounded-2xl border p-2.5 text-left transition ${i === curIdx ? 'border-accent bg-accent/[0.07] shadow-sm' : s.done ? 'border-green-200 bg-green-50/60 dark:border-green-900 dark:bg-green-950/30' : 'border-border bg-bg3 hover:border-accent'}`}>
-                        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-extrabold ${s.done ? 'bg-green-500 text-white' : i === curIdx ? 'bg-accent text-white' : 'bg-surface text-text3'}`}>{s.done ? '✓' : i + 1}</span>
-                        <p className="mt-1.5 text-[13px] font-bold leading-tight">{s.label}</p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface">
+                  <div className="h-2 rounded-full bg-gradient-to-r from-accent to-accent2 transition-all" style={{ width: `${Math.round((doneCount / 7) * 100)}%` }} />
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+                  {steps.map((s, i) => {
+                    const state = s.done ? 'done' : i === curIdx ? 'next' : 'todo';
+                    return (
+                      <button key={s.label} onClick={() => goTab(s.tab)} title={`${s.label}: ${s.sub}`} className={`relative rounded-2xl border p-3 text-left transition ${state === 'next' ? 'border-accent bg-accent/[0.07] shadow-sm ring-1 ring-accent' : state === 'done' ? 'border-green-200 bg-green-50/60 hover:border-green-400 dark:border-green-900 dark:bg-green-950/30' : 'border-border bg-bg3 hover:border-accent'}`}>
+                        <span className="flex items-center justify-between">
+                          <span className={`inline-flex h-7 w-7 items-center justify-center rounded-xl ${state === 'done' ? 'bg-green-500 text-white' : state === 'next' ? 'bg-accent text-white' : 'bg-surface text-text3'}`}>
+                            {state === 'done' ? <CheckCircle2 size={15} /> : <s.Icon size={15} />}
+                          </span>
+                          <span className="text-[10px] font-extrabold text-text3">0{i + 1}</span>
+                        </span>
+                        <p className="mt-2 text-[13px] font-bold leading-tight">{s.label}</p>
                         <p className="truncate text-[11px] text-text3">{s.sub}</p>
-                        {i === curIdx && <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">◉ start here</p>}
+                        <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${state === 'done' ? 'bg-green-500/15 text-green-700 dark:text-green-300' : state === 'next' ? 'bg-accent/15 text-accent' : 'bg-surface text-text3'}`}>
+                          {state === 'done' ? '✓ Done' : state === 'next' ? '◉ Start here' : '○ To do'}
+                        </span>
                       </button>
-                      {i < steps.length - 1 && <span className="mx-0.5 self-center text-sm text-text3">→</span>}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
               <div className="grid gap-4 lg:grid-cols-3">
