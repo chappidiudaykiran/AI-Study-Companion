@@ -185,6 +185,13 @@ function Sidebar() {
                 </button>
               );
             })}
+            {!collapsed && <p className="label !mb-1 px-3 pt-2">Insights</p>}
+            <NavLink to="/dashboard" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+              <LayoutDashboard size={17} className="shrink-0" /> {!collapsed && 'Dashboard'}
+            </NavLink>
+            <NavLink to="/analytics" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+              <BarChart3 size={17} className="shrink-0" /> {!collapsed && 'Global Analytics'}
+            </NavLink>
           </>
         ) : (
           <>
