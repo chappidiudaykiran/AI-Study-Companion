@@ -771,9 +771,9 @@ export default function Project() {
           {tab === 'overview' && (() => {
             const C = 2 * Math.PI * 30;
             return (
-            <div className="fade-up relative overflow-hidden rounded-3xl border border-sky-200/70 bg-gradient-to-br from-sky-100 via-violet-200 to-sky-200 p-6 text-slate-900 dark:border-white/10 dark:from-[#1b2340] dark:via-[#2a1e5c] dark:to-[#0c4a6e] dark:text-white">
+            <div className="fade-up relative overflow-hidden rounded-3xl border border-sky-200/70 bg-gradient-to-br from-sky-100 via-sky-200 to-blue-300 p-6 text-slate-900 dark:border-white/10 dark:from-[#0c2a4a] dark:via-[#123c66] dark:to-[#0c4a6e] dark:text-white">
               <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-sky-300/50 blur-2xl dark:bg-white/10" />
-              <div className="pointer-events-none absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-violet-300/50 blur-2xl dark:bg-black/30" />
+              <div className="pointer-events-none absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-blue-300/50 blur-2xl dark:bg-black/30" />
               <div className="relative flex flex-wrap items-center gap-5">
                 <div className="relative h-[84px] w-[84px] shrink-0" title={`Average mastery ${avg}%`}>
                   <svg width="84" height="84" className="-rotate-90">
@@ -1969,31 +1969,20 @@ export default function Project() {
                   ) : <p className="mt-2 text-sm text-text3">No activity yet — quiz, tutor and flashcard actions appear here.</p>}
                 </div>
               </div>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="card">
-                  <h3 className="font-heading font-bold">Attempt history <span className="text-xs font-normal text-text3">newest first</span></h3>
-                  {attempts.length ? (
-                    <div className="mt-2 max-h-64 space-y-1 overflow-auto">
-                      {attempts.slice().reverse().map((a, i) => (
-                        <p key={i} className="flex items-center justify-between gap-2 rounded-lg bg-bg3 px-3 py-2 text-sm">
-                          <span className="font-semibold">Attempt #{attempts.length - i}</span>
-                          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">{a.source || 'quiz'}</span>
-                          <span className={`badge ${(a.score ?? 0) >= 60 ? 'badge-low' : 'badge-high'}`}>{a.score ?? 0}%</span>
-                          <span className="hidden text-xs text-text3 sm:inline">{a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}</span>
-                        </p>
-                      ))}
-                    </div>
-                  ) : <p className="mt-2 text-sm text-text3">No attempts yet — start from Quiz or Practice.</p>}
-                </div>
-                <div className="card">
-                  <h3 className="font-heading font-bold">Recent activity <span className="text-xs font-normal text-text3">latest learning events</span></h3>
-                  <div className="mt-2 max-h-64 space-y-1 overflow-auto text-xs text-text2">
-                    {(analytics?.events || []).slice(0, 15).map((e, i) => (
-                      <p key={i} className="rounded-lg bg-bg3 px-2 py-1.5"><span className="rounded-full bg-accent/10 px-2 py-0.5 font-bold text-accent">{e.type}</span> · {new Date(e.at || e.createdAt).toLocaleString()} · {JSON.stringify(e.payload || {}).slice(0, 100)}</p>
+              <div className="card">
+                <h3 className="font-heading font-bold">Attempt history <span className="text-xs font-normal text-text3">newest first</span></h3>
+                {attempts.length ? (
+                  <div className="mt-2 max-h-64 space-y-1 overflow-auto">
+                    {attempts.slice().reverse().map((a, i) => (
+                      <p key={i} className="flex items-center justify-between gap-2 rounded-lg bg-bg3 px-3 py-2 text-sm">
+                        <span className="font-semibold">Attempt #{attempts.length - i}</span>
+                        <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">{a.source || 'quiz'}</span>
+                        <span className={`badge ${(a.score ?? 0) >= 60 ? 'badge-low' : 'badge-high'}`}>{a.score ?? 0}%</span>
+                        <span className="hidden text-xs text-text3 sm:inline">{a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}</span>
+                      </p>
                     ))}
-                    {!(analytics?.events || []).length && <p className="text-sm text-text3">No activity logged yet.</p>}
                   </div>
-                </div>
+                ) : <p className="mt-2 text-sm text-text3">No attempts yet — start from Quiz or Practice.</p>}
               </div>
             </div>
             );

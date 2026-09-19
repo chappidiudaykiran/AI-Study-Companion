@@ -149,7 +149,7 @@ function Sidebar({ collapsed, setCollapsed }) {
         )}
       </div>
 
-      <div className={onProject && lastProject ? 'mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-1 overflow-y-auto px-3 pb-1' : 'mt-4 flex-1 space-y-2 overflow-y-auto px-3 pb-2'}>
+      <div className={onProject && lastProject ? 'mt-2 flex min-h-0 flex-1 flex-col justify-start gap-0.5 overflow-y-auto px-3 pb-1' : 'mt-4 flex-1 space-y-2 overflow-y-auto px-3 pb-2'}>
         {user.isAdmin ? (
           <>
             <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
@@ -159,11 +159,11 @@ function Sidebar({ collapsed, setCollapsed }) {
         ) : (
         <>{onProject && lastProject ? (
           <>
-            <NavLink to="/" end className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+            <NavLink to="/" end className={({ isActive }) => `flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
               <HomeIcon size={17} className="shrink-0" /> {!collapsed && 'Home'}
             </NavLink>
             <div className="space-y-0">
-              <button onClick={() => nav(lastProject.spaceId ? `/?space=${lastProject.spaceId}` : '/')} title={lastProject.spaceName || 'Space'} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-text2 transition hover:bg-surface hover:text-text">
+              <button onClick={() => nav(lastProject.spaceId ? `/?space=${lastProject.spaceId}` : '/')} title={lastProject.spaceName || 'Space'} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-1.5 text-sm font-medium text-text2 transition hover:bg-surface hover:text-text">
                 <FolderOpen size={17} className="shrink-0" /> {!collapsed && <span className="truncate">{lastProject.spaceName || 'Space'}</span>}
               </button>
               <button onClick={() => nav(`/project/${pid}?tab=overview`)} title={lastProject.name} className="ml-7 flex w-[calc(100%-1.75rem)] items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition text-text2 hover:bg-surface hover:text-text">
@@ -178,7 +178,7 @@ function Sidebar({ collapsed, setCollapsed }) {
                   key={t.tab}
                   onClick={() => nav(`/project/${pid}?tab=${t.tab}`)}
                   title={t.label}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${active ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}
                 >
                   <t.icon size={17} className="shrink-0" />
                   {!collapsed && <span>{t.label}</span>}
