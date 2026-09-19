@@ -767,10 +767,7 @@ export default function Project() {
       {/* Main content — tutor goes edge-to-edge with zero padding */}
       <div className={tab === 'tutor' ? '' : 'container pt-6'}>
         <div className={tab === 'tutor' ? '' : 'mt-3'}>
-          {/* Adaptive recommendations — everywhere except overview/growth (own card), tutor (own chips), materials (clean upload view), concepts (grouped view), quiz + practice (clean setup view), dashboard (own next-step card), analytics (clean charts view) */}
-          {tab !== 'overview' && tab !== 'growth' && tab !== 'tutor' && tab !== 'materials' && tab !== 'concepts' && tab !== 'quiz' && tab !== 'practice' && tab !== 'dashboard' && tab !== 'analytics' && (
-            <div className="mb-4"><AdaptiveBanner adaptive={adaptive} rec={rec} onGo={goTab} /></div>
-          )}
+          {/* Adaptive next step lives only in the dedicated Recommendations tab — no floating banner anywhere else */}
           {tab === 'overview' && (() => {
             const C = 2 * Math.PI * 30;
             return (
@@ -956,17 +953,7 @@ export default function Project() {
                 <button className="btn btn-primary"><UploadCloud size={16} /> Upload & process</button>
               </div>
               <p className="mt-2 text-sm">Status: <span className={`badge ${matStatus.includes('ready') ? 'badge-low' : matStatus.includes('fail') ? 'badge-high' : 'badge-medium'}`}>{matStatus || 'no upload yet'}</span></p>
-              {!!matProgress && uploadStart != null && (
-                <div className="mt-2 rounded-xl border border-accent/30 bg-accent/[0.05] p-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-accent">{matProgress.stage || 'Working…'}</span>
-                    <span className="font-bold">{matProgress.pct}% · {fmtElapsed(Date.now() - uploadStart)}</span>
-                  </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface">
-                    <div className="h-2 rounded-full bg-gradient-to-r from-accent to-accent2 transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, matProgress.pct))}%` }} />
-                  </div>
-                </div>
-              )}
+              {/* Upload progress lives on the document row below — no duplicate bar here */}
               <div className="mt-4">
                 <h3 className="font-heading font-bold">Documents in this project</h3>
                 <div className="mt-2 space-y-2">
@@ -1716,7 +1703,6 @@ export default function Project() {
 
           {tab === 'growth' && (
             <div className="mt-4 space-y-3">
-              <AdaptiveBanner adaptive={adaptive} rec={rec} onGo={goTab} />
               <div className="card fade-up">
               <h2 className="font-heading text-lg font-bold">Growth & next step</h2>
               <div className="mt-2 space-y-1 text-sm">
