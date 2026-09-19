@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2, Layers, RotateCcw, ThumbsUp, ThumbsDown, Wand2, Home as HomeIcon, LayoutDashboard } from 'lucide-react';
+import { UploadCloud, MessagesSquare, MessageCircle, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2, Layers, RotateCcw, ThumbsUp, ThumbsDown, Wand2, Home as HomeIcon, LayoutDashboard } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
 import MathText from '../components/MathText.jsx';
 import { Skel, TextLines, ChatThread, ListRows, PageSkeleton } from '../components/Shimmer.jsx';
@@ -108,6 +108,21 @@ export default function Project() {
   const [startingQuiz, setStartingQuiz] = useState(false);
   // In-chat summaries posted by the Summarize chip (built from this chat only)
   const [quizNotes, setQuizNotes] = useState([]);
+  // Quiz setup (count / timer / topics) like a full quiz lobby
+  const [quizCount, setQuizCount] = useState(4);
+  const [quizTimer, setQuizTimer] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [roundExpired, setRoundExpired] = useState(false);
+  const timerRef = useRef(null);
+  const [topicMode, setTopicMode] = useState('all');
+  const [pickedTopics, setPickedTopics] = useState([]);
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  function clearTimer() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    setTimeLeft(null);
+  }
   const [analytics, setAnalytics] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [matsLoading, setMatsLoading] = useState(false);
@@ -118,18 +133,24 @@ export default function Project() {
   const [flipped, setFlipped] = useState(false);
   const [genCards, setGenCards] = useState(false);
   const [reviewMsg, setReviewMsg] = useState('');
+  // In-chat tutor widgets (declared up-front: scroll effects below depend on them)
+  const [tutorQuizzes, setTutorQuizzes] = useState([]);
+  const [tutorCards, setTutorCards] = useState([]);
 
   useEffect(() => {
     chatBoxRef.current?.scrollTo({ top: chatBoxRef.current.scrollHeight, behavior: 'smooth' });
-  }, [chat, asking, tab]);
+  }, [chat, asking, tab, tutorQuizzes, tutorCards]);
 
   useEffect(() => {
     quizBoxRef.current?.scrollTo({ top: quizBoxRef.current.scrollHeight, behavior: 'smooth' });
-  }, [questions, tab]);
+  }, [questions, quizNotes, tab]);
 
-  // Tutor + Quiz: freeze page scroll, inner panes scroll instead (like screenshot)
+  // Tutor + Quiz: freeze page scroll, inner panes scroll instead (like screenshot).
+  // Reset window scroll on entry — otherwise a leftover scroll offset from the
+  // previous tab freezes the pane shifted up under the navbar.
   useEffect(() => {
     if (tab !== 'tutor' && tab !== 'quiz') return;
+    window.scrollTo(0, 0);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
@@ -155,6 +176,7 @@ export default function Project() {
     try {
       await api.delete(`/api/materials/${mid}`);
       await loadMaterials();
+      refreshStats();
     } catch (err) {
       alert(err.response?.data?.error || 'Delete failed — try again');
     } finally {
@@ -277,6 +299,7 @@ export default function Project() {
     setQ('');
     setAsking(true);
     setChat((c) => [...c, { role: 'user', text: qq }]);
+    scrollChatEnd();
     try {
       const { data } = await api.post(`/api/projects/${id}/tutor`, { question: qq, session: sess });
       setChat((c) => [...c, { role: 'assistant', text: data.answer, citations: data.citations, grounded: data.grounded }]);
@@ -290,11 +313,16 @@ export default function Project() {
   }
 
   // ---- Tutor saved chats (CHATS panel) ----
+  function scrollChatEnd() {
+    setTimeout(() => chatBoxRef.current?.scrollTo({ top: chatBoxRef.current?.scrollHeight || 0, behavior: 'smooth' }), 60);
+  }
+
   function newChat() {
     const sid = `s_${Date.now().toString(36)}`;
     setActiveSession(sid);
     setChat([]);
     setQ('');
+    scrollChatEnd();
   }
 
   async function openSession(sid) {
@@ -303,6 +331,7 @@ export default function Project() {
     try {
       const { data } = await api.get(`/api/projects/${id}/tutor/history`, { params: { session: sid } });
       setChat(data.messages || []);
+      scrollChatEnd();
     } catch {}
   }
 
@@ -365,18 +394,23 @@ export default function Project() {
     return names.find((n) => n && low.includes(n.toLowerCase())) || adaptive?.weak?.[0]?.concept || '';
   }
 
-  // In-chat quiz widgets (answered inline, never leaves the tutor thread)
-  const [tutorQuizzes, setTutorQuizzes] = useState([]);
+  // In-chat quiz widgets: one question at a time (MCQ style) — answer to advance.
+
+  function setTutorQi(wkey, qi) {
+    setTutorQuizzes((ws) => ws.map((w) => w.key === wkey ? { ...w, qi } : w));
+  }
 
   async function startTutorQuiz(concept) {
     setStartingQuiz(true);
     try {
-      const body = { count: 3 };
+      const body = { count: 3, mcqOnly: true };
       if (concept) body.concept = concept;
       const { data } = await api.post(`/api/projects/${id}/quiz/start`, body);
       setTutorQuizzes((w) => [...w, {
         key: `tq${Date.now()}`,
+        at: Date.now(),
         concept: concept || 'Adaptive mix',
+        qi: 0,
         questions: (data.questions || []).map((x) => ({ ...x, answer: '', result: null, answering: false })),
       }]);
       refreshStats();
@@ -391,22 +425,29 @@ export default function Project() {
     setTutorQuizzes((ws) => ws.map((w) => w.key === wkey
       ? { ...w, questions: w.questions.map((x) => x.id === qid ? { ...x, answer: t, answering: true } : x) }
       : w));
+    const stamp = (result) => setTutorQuizzes((ws) => ws.map((w) => {
+      if (w.key !== wkey) return w;
+      const questions = w.questions.map((x) => x.id === qid ? { ...x, result, answering: false } : x);
+      const idx = questions.findIndex((x) => x.id === qid);
+      // auto-advance when the current question is answered
+      const qi = (idx === (w.qi ?? 0) && idx < questions.length - 1) ? idx + 1 : (w.qi ?? 0);
+      return { ...w, questions, qi };
+    }));
     try {
       const { data } = await api.post(`/api/quiz/${qid}/answer`, { answer: t });
-      setTutorQuizzes((ws) => ws.map((w) => w.key === wkey
-        ? { ...w, questions: w.questions.map((x) => x.id === qid ? { ...x, result: data, answering: false } : x) }
-        : w));
+      stamp(data);
     } catch (err) {
-      setTutorQuizzes((ws) => ws.map((w) => w.key === wkey
-        ? { ...w, questions: w.questions.map((x) => x.id === qid ? { ...x, answering: false, result: { score: 0, feedback: { text: err.response?.data?.error || 'Grading failed.' } } } : x) }
-        : w));
+      stamp({ score: 0, feedback: { text: err.response?.data?.error || 'Grading failed.' } });
     } finally {
       refreshStats();
     }
   }
 
-  // In-chat flashcard widgets (flip + review inline, deck stays in sync)
-  const [tutorCards, setTutorCards] = useState([]);
+  // In-chat flashcard widgets: one card at a time — review to advance.
+
+  function setTutorCi(wkey, ci) {
+    setTutorCards((ws) => ws.map((w) => w.key === wkey ? { ...w, ci } : w));
+  }
 
   async function startTutorCards(concept) {
     setGenCards(true);
@@ -417,7 +458,9 @@ export default function Project() {
       await loadFlashcards();
       setTutorCards((w) => [...w, {
         key: `tc${Date.now()}`,
+        at: Date.now(),
         concept: concept || (data.adaptive?.focus || [])[0] || 'Adaptive',
+        ci: 0,
         cards: (data.cards || []).map((c) => ({ ...c, flipped: false, reviewed: null, msg: '' })),
       }]);
       refreshStats();
@@ -429,9 +472,18 @@ export default function Project() {
   async function reviewTutorCard(wkey, cardId, known) {
     try {
       const { data } = await api.post(`/api/flashcards/${cardId}/review`, { known });
-      setTutorCards((ws) => ws.map((w) => w.key === wkey
-        ? { ...w, cards: w.cards.map((c) => c._id === cardId ? { ...c, reviewed: known, msg: data.adaptive?.suggestion || '' } : c) }
-        : w));
+      setTutorCards((ws) => ws.map((w) => {
+        if (w.key !== wkey) return w;
+        const cards = w.cards.map((c) => c._id === cardId ? { ...c, reviewed: known, msg: data.adaptive?.suggestion || '' } : c);
+        const idx = cards.findIndex((c) => c._id === cardId);
+        // auto-advance to the next unreviewed card
+        let ci = w.ci ?? 0;
+        if (idx === ci) {
+          const next = cards.findIndex((c) => c.reviewed == null);
+          ci = next === -1 ? ci : next;
+        }
+        return { ...w, cards, ci };
+      }));
       refreshStats();
     } catch {}
   }
@@ -442,6 +494,18 @@ export default function Project() {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
+  // A/B/C/D display label for an MCQ option (strips any baked-in prefix)
+  function optionLabel(o, i) {
+    return `${String.fromCharCode(65 + i)}. ${String(o || '').replace(/^[A-D][.)\-:]\s*/, '')}`;
+  }
+
+  // True when option o is the correct answer for an answered question
+  function isCorrectOption(x, o) {
+    if (!x?.result) return false;
+    if (x.result.correctAnswer) return o === x.result.correctAnswer;
+    return x.result.score === 100 && o === x.answer;
+  }
+
   function fmtDay(ts) {
     if (!ts) return '';
     const d = new Date(ts);
@@ -450,11 +514,27 @@ export default function Project() {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return sameDay ? 'Today' : `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
   }
-  async function startQuiz(count = 4, concept = null) {
+  async function startQuiz(count = quizCount, concept = null) {
     setStartingQuiz(true);
+    setRoundExpired(false);
+    clearTimer();
     try {
-      const body = { count };
-      if (concept) body.concept = concept;
+      const body = { count: Math.max(1, Math.min(count || quizCount, 8)) };
+      if (concept) {
+        body.concept = concept;
+      } else {
+        // Topics selection narrows the adaptive pool (still weakest-first inside it)
+        let pool = null;
+        if (pickedTopics.length) {
+          pool = pickedTopics;
+        } else if (topicMode === 'weak') {
+          pool = mastery.filter((m) => m.score < 60).map((m) => m.concept);
+        } else if (topicMode === 'untested') {
+          const known = new Set(mastery.map((m) => m.concept));
+          pool = (concepts.length ? concepts.map((c) => c.name) : []).filter((n) => !known.has(n));
+        }
+        if (pool && pool.length) body.concepts = pool;
+      }
       const { data } = await api.post(`/api/projects/${id}/quiz/start`, body);
       const qs = data.questions.map((x) => ({ ...x, answer: '', result: null }));
       setQuestions(qs);
@@ -462,12 +542,32 @@ export default function Project() {
       setQuizTip(data.adaptive?.tip || '');
       setActiveQuizId(qs[0]?.id || null);
       setQuizInput('');
+      if (quizTimer > 0) {
+        const deadline = Date.now() + quizTimer * 60000;
+        setTimeLeft(quizTimer * 60);
+        timerRef.current = setInterval(() => {
+          const s = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+          setTimeLeft(s);
+          if (s <= 0) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            timerRef.current = null;
+            setRoundExpired(true);
+          }
+        }, 1000);
+      }
     } finally {
       setStartingQuiz(false);
     }
   }
 
+  function fmtClock(s) {
+    const m = Math.floor((s || 0) / 60);
+    const r = String((s || 0) % 60).padStart(2, '0');
+    return `${m}:${r}`;
+  }
+
   async function answer(x, overrideText) {
+    if (roundExpired) return;
     const text = (overrideText ?? x.answer ?? '').trim();
     if (!text || answeringId) return;
     setAnsweringId(x.id);
@@ -751,7 +851,7 @@ export default function Project() {
           {tab === 'concepts' && (() => {
             const groups = new Map();
             for (const c of concepts) {
-              const key = c.docName || 'Other / earlier uploads';
+              const key = c.docName || 'Document';
               if (!groups.has(key)) groups.set(key, []);
               groups.get(key).push(c);
             }
@@ -910,57 +1010,105 @@ export default function Project() {
                       )}
                     </div>
                   ))}
-                  {tutorQuizzes.map((w) => (
+                  {[...tutorQuizzes.map((w) => ({ ...w, wkind: 'quiz' })), ...tutorCards.map((w) => ({ ...w, wkind: 'cards' }))]
+                    .sort((a, b) => (a.at || 0) - (b.at || 0))
+                    .map((w) => {
+                    if (w.wkind === 'cards') {
+                      const ci = Math.min(w.ci ?? 0, w.cards.length - 1);
+                      const c = w.cards[ci];
+                      const cdone = w.cards.filter((k) => k.reviewed != null).length;
+                      const callDone = cdone === w.cards.length && w.cards.length > 0;
+                      const knew = w.cards.filter((k) => k.reviewed === true).length;
+                      return (
+                      <div key={w.key} className="flex gap-2">
+                        <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
+                        <div className="max-w-[85%] flex-1 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
+                          <p className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-accent">
+                            <span>Flashcards · {w.concept}</span>
+                            <span>{cdone}/{w.cards.length} reviewed</span>
+                          </p>
+                          <div className="mt-1.5 flex items-center gap-1">
+                            {w.cards.map((k, i) => (
+                              <button key={k._id} onClick={() => setTutorCi(w.key, i)} className={`h-2 flex-1 rounded-full transition ${k.reviewed === true ? 'bg-green-500' : k.reviewed === false ? 'bg-red-400' : i === ci ? 'bg-accent' : 'bg-surface'}`} />
+                            ))}
+                          </div>
+                          {callDone ? (
+                            <p className="mt-2 rounded-xl bg-bg2 px-2.5 py-2 text-[13px]"><b>Deck complete — {knew}/{w.cards.length} knew it.</b> Re-review the misses tomorrow.</p>
+                          ) : c && (
+                            <div className="mt-2 rounded-xl border border-border bg-bg2 p-2.5">
+                              <p className="text-[11px] text-text3">Card {ci + 1} of {w.cards.length}</p>
+                              <button onClick={() => setTutorCards((ws) => ws.map((v) => v.key === w.key ? { ...v, cards: v.cards.map((k) => k._id === c._id ? { ...k, flipped: !k.flipped } : k) } : v))} className="mt-0.5 w-full text-left text-sm font-semibold">
+                                {c.flipped ? c.back : c.front}
+                              </button>
+                              <p className="mt-0.5 text-[10px] text-text3">{c.flipped ? 'Answer — tap to flip back' : 'Tap to reveal'}</p>
+                              {c.reviewed == null ? (
+                                <div className="mt-1.5 flex gap-1.5">
+                                  <button onClick={() => reviewTutorCard(w.key, c._id, false)} className="btn btn-outline !px-2 !py-1 !text-[11px]">Still learning</button>
+                                  <button onClick={() => reviewTutorCard(w.key, c._id, true)} className="btn btn-primary !px-2 !py-1 !text-[11px]">I knew it</button>
+                                </div>
+                              ) : (
+                                <p className="mt-1 text-xs text-text2">{c.reviewed ? 'Marked known ✓' : 'Queued for review'} {c.msg && `— ${c.msg.slice(0, 90)}`}</p>
+                              )}
+                              <div className="mt-1.5 flex justify-between">
+                                <button onClick={() => setTutorCi(w.key, Math.max(0, ci - 1))} disabled={ci === 0} className="text-[11px] font-semibold text-text3 hover:text-accent disabled:opacity-40">← Prev</button>
+                                <button onClick={() => setTutorCi(w.key, Math.min(w.cards.length - 1, ci + 1))} disabled={ci >= w.cards.length - 1} className="text-[11px] font-semibold text-accent hover:underline disabled:opacity-40">Next →</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      );
+                    }
+                    const qi = Math.min(w.qi ?? 0, w.questions.length - 1);
+                    const x = w.questions[qi];
+                    const doneCount = w.questions.filter((v) => v.result).length;
+                    const allDone = doneCount === w.questions.length && w.questions.length > 0;
+                    const avg = doneCount ? Math.round(w.questions.reduce((s, v) => s + (v.result?.score || 0), 0) / doneCount) : 0;
+                    return (
                     <div key={w.key} className="flex gap-2">
                       <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
-                      <div className="max-w-[85%] flex-1 space-y-2 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-accent">Quiz · {w.concept}</p>
-                        {w.questions.map((x) => (
-                          <div key={x.id} className="rounded-xl border border-border bg-bg2 p-2.5">
-                            <p><span className="badge badge-info mr-1.5">{x.difficulty}</span>{x.stem}</p>
-                            {x.type === 'mcq' ? (
-                              <div className="mt-1.5 grid gap-1">
-                                {x.options.map((o) => (
-                                  <button key={o} onClick={() => !x.result && !x.answering && answerTutorQuiz(w.key, x.id, o)} disabled={!!x.result || x.answering} className={`rounded-lg border px-2 py-1.5 text-left text-[13px] transition ${x.result ? 'cursor-default opacity-80' : 'hover:border-accent hover:text-accent'} ${x.answer === o ? 'border-accent bg-accent/10 font-semibold' : 'border-border'}`}>• {o}</button>
-                                ))}
-                              </div>
-                            ) : !x.result ? (
-                              <form onSubmit={(e) => { e.preventDefault(); answerTutorQuiz(w.key, x.id, x.answer); }} className="mt-1.5 flex gap-1.5">
-                                <input value={x.answer} onChange={(e) => setTutorQuizzes((ws) => ws.map((v) => v.key === w.key ? { ...v, questions: v.questions.map((y) => y.id === x.id ? { ...y, answer: e.target.value } : y) } : v))} placeholder="Type your answer…" className="input flex-1 !py-1.5 !text-xs" />
-                                <button className="btn btn-outline !px-3 !py-1.5 !text-xs" disabled={x.answering}>{x.answering ? '…' : 'Send'}</button>
-                              </form>
-                            ) : null}
-                            {x.answer && x.type !== 'mcq' && !x.result && <p className="mt-1 text-xs text-text3">Grading…</p>}
+                      <div className="max-w-[85%] flex-1 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
+                        <p className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-accent">
+                          <span>Quiz · {w.concept}</span>
+                          <span>{doneCount}/{w.questions.length} done</span>
+                        </p>
+                        <div className="mt-1.5 flex items-center gap-1">
+                          {w.questions.map((v, i) => (
+                            <button key={v.id} onClick={() => setTutorQi(w.key, i)} title={v.concept} className={`h-2 flex-1 rounded-full transition ${v.result ? (v.result.score >= 60 ? 'bg-green-500' : 'bg-red-400') : i === qi ? 'bg-accent' : 'bg-surface'}`} />
+                          ))}
+                        </div>
+                        {allDone ? (
+                          <p className="mt-2 rounded-xl bg-bg2 px-2.5 py-2 text-[13px]"><b>Set complete — {avg}% avg.</b> {avg < 60 ? 'Revise the misses above, then hit Practice for another round.' : 'Nice — hit Practice to lock it in, or Generate Quiz for a fresh mix.'}</p>
+                        ) : x && (
+                          <div className="mt-2 rounded-xl border border-border bg-bg2 p-2.5">
+                            <p className="text-[11px] text-text3">Question {qi + 1} of {w.questions.length}</p>
+                            <p className="mt-0.5"><span className="badge badge-info mr-1.5">{x.concept} · {x.difficulty}</span>{x.stem}</p>
+                            <div className="mt-1.5 grid gap-1">
+                              {x.options.map((o, i) => {
+                                const right = x.result ? isCorrectOption(x, o) : false;
+                                const wrongPick = x.result && !right && o === x.answer;
+                                return (
+                                <button key={o} onClick={() => !x.result && !x.answering && answerTutorQuiz(w.key, x.id, o)} disabled={!!x.result || x.answering} className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-[13px] transition ${x.result ? 'cursor-default border-border' : 'border-border hover:border-accent hover:text-accent'} ${!x.result && x.answer === o ? 'border-accent bg-accent/10 font-semibold' : ''}`}>
+                                  <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${right ? 'bg-green-500 text-white' : wrongPick ? 'bg-red-500 text-white' : 'bg-surface text-text2'}`}>{String.fromCharCode(65 + i)}</span>
+                                  <span>{String(o || '').replace(/^[A-D][.)\-:]\s*/, '')}</span>
+                                  {right && <span className="ml-auto font-bold text-green-600">✓</span>}
+                                  {wrongPick && <span className="ml-auto font-bold text-red-500">✕</span>}
+                                </button>
+                                );
+                              })}
+                            </div>
+                            {x.answering && <p className="mt-1 text-xs text-text3">Grading…</p>}
                             {x.result && <p className="mt-1.5 rounded-lg bg-bg3 px-2 py-1.5 text-[13px]"><b>Score {x.result.score}</b> — {x.result.feedback?.text}</p>}
+                            <div className="mt-1.5 flex justify-between">
+                              <button onClick={() => setTutorQi(w.key, Math.max(0, qi - 1))} disabled={qi === 0} className="text-[11px] font-semibold text-text3 hover:text-accent disabled:opacity-40">← Prev</button>
+                              <button onClick={() => setTutorQi(w.key, Math.min(w.questions.length - 1, qi + 1))} disabled={qi >= w.questions.length - 1} className="text-[11px] font-semibold text-accent hover:underline disabled:opacity-40">Next →</button>
+                            </div>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
-                  ))}
-                  {tutorCards.map((w) => (
-                    <div key={w.key} className="flex gap-2">
-                      <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
-                      <div className="max-w-[85%] flex-1 space-y-2 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-accent">Flashcards · {w.concept}</p>
-                        {w.cards.map((c) => (
-                          <div key={c._id} className="rounded-xl border border-border bg-bg2 p-2.5">
-                            <button onClick={() => setTutorCards((ws) => ws.map((v) => v.key === w.key ? { ...v, cards: v.cards.map((k) => k._id === c._id ? { ...k, flipped: !k.flipped } : k) } : v))} className="w-full text-left text-[13px] font-semibold">
-                              {c.flipped ? c.back : c.front}
-                            </button>
-                            <p className="mt-0.5 text-[10px] text-text3">{c.flipped ? 'Answer — tap to flip back' : 'Tap to reveal'}</p>
-                            {c.reviewed == null ? (
-                              <div className="mt-1 flex gap-1.5">
-                                <button onClick={() => reviewTutorCard(w.key, c._id, false)} className="btn btn-outline !px-2 !py-1 !text-[11px]">Still learning</button>
-                                <button onClick={() => reviewTutorCard(w.key, c._id, true)} className="btn btn-primary !px-2 !py-1 !text-[11px]">I knew it</button>
-                              </div>
-                            ) : (
-                              <p className="mt-1 text-xs text-text2">{c.reviewed ? 'Marked known ✓' : 'Queued for review'} {c.msg && `— ${c.msg.slice(0, 90)}`}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {asking && (
                     <div className="flex gap-2">
                       <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
@@ -972,7 +1120,13 @@ export default function Project() {
                     </div>
                   )}
                   {!chat.length && !asking && (
-                    <p className="mx-auto max-w-sm text-center text-xs text-text3">Upload a PDF in Materials first for grounded answers, then try a chip below.</p>
+                    <div className="mx-auto mt-8 max-w-md px-4 text-center">
+                      <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1f7ae0] text-white shadow-lg">
+                        <MessageCircle size={26} />
+                      </span>
+                      <p className="mt-4 font-heading text-2xl font-extrabold text-text">What do you want to learn today?</p>
+                      <p className="mt-1 text-sm text-text2">Ask anything about your uploaded PDFs — every answer cites the exact page it came from.</p>
+                    </div>
                   )}
                 </div>
                 <div className="shrink-0 border-t border-border bg-bg2 px-4 py-3">
@@ -1108,7 +1262,18 @@ export default function Project() {
                           <p className="mb-1 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-accent"><span className="badge badge-info">{v.concept} · {v.difficulty}</span></p>
                           <MathText text={v.stem} />
                           {!!v.reason && <p className="mt-1 text-[11px] italic text-text3">🎯 {v.reason}</p>}
-                          {v.type === 'mcq' && <div className="mt-1.5 space-y-0.5 text-[13px] text-text2">{v.options.map((o) => <p key={o}>• {o}</p>)}</div>}
+                          {v.type === 'mcq' && <div className="mt-1.5 space-y-0.5 text-[13px] text-text2">{v.options.map((o, i) => {
+                            const right = v.result ? isCorrectOption(v, o) : false;
+                            const wrongPick = v.result && !right && o === v.answer;
+                            return (
+                            <p key={o} className="flex items-center gap-2 rounded-lg border border-border px-2 py-1 text-text2">
+                              <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${right ? 'bg-green-500 text-white' : wrongPick ? 'bg-red-500 text-white' : 'bg-surface text-text2'}`}>{String.fromCharCode(65 + i)}</span>
+                              <span>{optionLabel(o, i).slice(3)}</span>
+                              {right && <span className="ml-auto font-bold text-green-600">✓</span>}
+                              {wrongPick && <span className="ml-auto font-bold text-red-500">✕</span>}
+                            </p>
+                            );
+                          })}</div>}
                           <p className="mt-1.5 text-[10px] text-text3">02:48</p>
                         </div>
                       </div>
