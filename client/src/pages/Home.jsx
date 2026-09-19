@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, ArrowRight, Trash2 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, ArrowRight } from 'lucide-react';
+import StudyCard from '../components/StudyCard.jsx';
 import { useCrumbs } from '../crumbs.js';
 import api from '../api/client.js';
 
@@ -17,6 +18,7 @@ const isAdmin = (() => {
 })();
 
 export default function Home() {
+  const nav = useNavigate();
   const [spaces, setSpaces] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -111,8 +113,7 @@ export default function Home() {
     }
   }
 
-  async function deleteSpace(e, id, name) {
-    e.stopPropagation();
+  async function deleteSpace(id, name) {
     if (!window.confirm(`Delete space "${name}" and ALL its projects and learning data? This cannot be undone.`)) return;
     try {
       await api.delete(`/api/spaces/${id}`);
@@ -124,8 +125,7 @@ export default function Home() {
     else loadSpaces();
   }
 
-  async function deleteProject(e, id, name) {
-    e.stopPropagation();
+  async function deleteProject(id, name) {
     if (!window.confirm(`Delete project "${name}" and ALL its materials, chats, quizzes and mastery? This cannot be undone.`)) return;
     try {
       await api.delete(`/api/projects/${id}`);
@@ -186,19 +186,21 @@ export default function Home() {
               {cerr && <p className="alert alert-error mt-2 !mb-0">{cerr}</p>}
             </div>
             )}
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {spaces.map((s) => (
-                <div key={s._id} onClick={() => selectSpace(s._id)} className="relative cursor-pointer rounded-2xl border border-border bg-white p-5 text-left shadow-sm transition hover:border-[#a5b4fc]">
-                  {!isAdmin && (
-                  <button onClick={(e) => deleteSpace(e, s._id, s.name)} title={`Delete ${s.name}`} className="absolute right-3 top-3 rounded-lg p-1.5 text-text3 transition hover:bg-red-50 hover:text-red-600">
-                    <Trash2 size={15} />
-                  </button>
-                  )}
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#ede9fe] text-base font-bold text-[#4f46e5]">{initial(s.name)}</span>
-                  <span className="mt-2 block font-semibold text-text">{s.name}</span>
-                  <span className="block truncate text-[13px] text-text3">{s.description || 'No description'}</span>
-                  <span className="mt-3 flex items-center gap-1 text-[13px] font-semibold text-[#4f46e5]">Open Space <ArrowRight size={14} /></span>
-                </div>
+            <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {spaces.map((s, i) => (
+                <StudyCard
+                  key={s._id}
+                  id={s._id}
+                  index={i}
+                  title={s.name}
+                  tag={`${s.projects ?? 0} Projects`}
+                  description={s.description || 'No description'}
+                  openLabel="Open Space"
+                  onOpen={() => selectSpace(s._id)}
+                  canDelete={!isAdmin}
+                  onDelete={() => deleteSpace(s._id, s.name)}
+                  confirmText=""
+                />
               ))}
             </div>
             {!spaces.length && <div className="card mt-4 text-sm text-text2">No spaces yet — create one above to begin.</div>}
@@ -230,41 +232,24 @@ export default function Home() {
             )}
             {showPform && perr && <p className="alert alert-error mt-2">{perr}</p>}
 
-            <div className="mt-5 grid max-w-3xl gap-4">
-              {projects.map((p) => {
-                const pct = p.masteryAvg ?? 0;
-                return (
-                  <div key={p._id} className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#ede9fe] text-lg font-bold text-[#4f46e5]">
-                        {initial(p.name)}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-text">{p.name}</p>
-                        <p className="truncate text-[13px] text-text3">
-                          {(p.description || p.goal || '').slice(0, 60)}{p.createdAt ? ` · ${new Date(p.createdAt).toLocaleDateString()}` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex items-center gap-3">
-                      <div className="h-1.5 flex-1 rounded-full bg-[#e5e7eb]">
-                        <div className="h-1.5 rounded-full bg-[#c7d2fe]" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="text-[13px] font-bold text-text">{pct}%</span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-                      {!isAdmin ? (
-                      <button onClick={(e) => deleteProject(e, p._id, p.name)} className="inline-flex items-center gap-1 text-sm text-text3 transition hover:text-red-600">
-                        <Trash2 size={14} /> Delete
-                      </button>
-                      ) : <span />}
-                      <Link to={`/project/${p._id}`} className="inline-flex items-center gap-1 text-sm font-semibold text-[#4f46e5] hover:underline">
-                        Open Project <ArrowRight size={15} />
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              {projects.map((p, i) => (
+                <StudyCard
+                  key={p._id}
+                  id={p._id}
+                  index={i}
+                  title={p.name}
+                  tag={p.masteryAvg !== null && p.masteryAvg !== undefined ? `${p.masteryAvg}% mastery` : 'New'}
+                  description={p.description || p.goal || ''}
+                  meta={p.createdAt ? new Date(p.createdAt).toLocaleDateString() : ''}
+                  progress={p.masteryAvg ?? 0}
+                  openLabel="Open Project"
+                  onOpen={() => nav(`/project/${p._id}`)}
+                  canDelete={!isAdmin}
+                  onDelete={() => deleteProject(p._id, p.name)}
+                  confirmText=""
+                />
+              ))}
               {!projects.length && <div className="rounded-2xl border border-border bg-white p-5 text-sm text-text2">No projects yet — click “New Project” to begin.</div>}
             </div>
           </div>
