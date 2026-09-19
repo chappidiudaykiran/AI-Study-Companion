@@ -771,7 +771,7 @@ export default function Project() {
           {tab === 'overview' && (() => {
             const C = 2 * Math.PI * 30;
             return (
-            <div className="card fade-up relative overflow-hidden !border-sky-200/60 !bg-gradient-to-br !from-sky-50 !via-indigo-50 !to-sky-100 !p-6 dark:!border-white/10 dark:!from-[#0e2140] dark:!via-[#141b3d] dark:!to-[#0b2f4a]">
+            <div className="card fade-up relative overflow-hidden !border-sky-400/50 !bg-gradient-to-br !from-sky-200 !via-indigo-200 !to-sky-300 !p-6 dark:!border-white/10 dark:!from-[#0e2140] dark:!via-[#141b3d] dark:!to-[#0b2f4a]">
               <div className="relative flex flex-wrap items-center gap-5">
                 <div className="relative h-[84px] w-[84px] shrink-0" title={`Average mastery ${avg}%`}>
                   <svg width="84" height="84" className="-rotate-90">
