@@ -209,7 +209,7 @@ export default function Home() {
             {!spaces.length && <div className="card mt-4 text-sm text-text2">No spaces yet — create one above to begin.</div>}
           </div>
         ) : (
-          <div>
+          <div className="pt-6">
             <button onClick={clearSelection} className="flex items-center gap-1 text-sm text-text2 hover:text-text">← All spaces</button>
             <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
               <div>

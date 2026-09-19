@@ -250,7 +250,7 @@ export default function Project() {
       </aside>
 
       {/* Main content */}
-      <div className="container">
+      <div className="container pt-6">
         <p className="flex items-center gap-1.5 text-[13px] text-text3">
           <Link to="/" className="hover:text-text hover:underline">Projects</Link>
           <span>/</span>
