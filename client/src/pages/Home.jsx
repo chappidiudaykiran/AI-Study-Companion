@@ -192,6 +192,8 @@ export default function Home() {
                   key={s._id}
                   id={s._id}
                   index={i}
+                  compact
+                  palette="space"
                   title={s.name}
                   tag={`${s.projects ?? 0} Projects`}
                   description={s.description || 'No description'}
