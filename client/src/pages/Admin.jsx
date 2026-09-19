@@ -193,10 +193,10 @@ export default function Admin() {
   ];
 
   return (
-    <div className="theme-dashboard min-h-screen bg-[#f4f5fb] pb-16 dark:bg-bg">
+    <div className="theme-dashboard min-h-screen pb-16">
       <div className="container max-w-6xl pt-6">
-        {/* HERO — dark navy System Overview */}
-        <div className="fade-up relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1c1846] via-[#232052] to-[#14122f] p-6 text-white">
+        {/* HERO — site-themed System Overview (accent blue → violet) */}
+        <div className="fade-up relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent via-accent2 to-accent p-6 text-white">
           <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white/60"><ShieldCheck size={13} /> Admin · Mission Control</p>
@@ -234,7 +234,7 @@ export default function Admin() {
           {TABS.map((t) => {
             const active = tab === t.id;
             return (
-              <button key={t.id} onClick={() => setTab(t.id)} className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${active ? 'bg-[#1e1b4b] text-white shadow' : 'bg-white text-gray-500 hover:text-gray-900 dark:bg-bg2 dark:text-text2 dark:hover:text-text'}`}>
+              <button key={t.id} onClick={() => setTab(t.id)} className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition ${active ? 'bg-accent text-white shadow' : 'bg-white text-gray-500 hover:text-gray-900 dark:bg-bg2 dark:text-text2 dark:hover:text-text'}`}>
                 <t.icon size={13} /> {t.label}
               </button>
             );
@@ -393,7 +393,7 @@ export default function Admin() {
                 <option value="">Provider: All</option>
                 {(ai?.providers || []).map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
-              <button onClick={() => loadAiUsage()} disabled={aiLoading} className="rounded-xl bg-[#1e1b4b] px-4 py-2 text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-60">{aiLoading ? 'Loading…' : 'Refresh'}</button>
+              <button onClick={() => loadAiUsage()} disabled={aiLoading} className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-60">{aiLoading ? 'Loading…' : 'Refresh'}</button>
               {(aiFilter.feature || aiFilter.provider) && <button onClick={() => { const f = { feature: '', provider: '' }; setAiFilter(f); loadAiUsage(f); }} className="text-xs font-bold text-text3 hover:text-text">Clear ✕</button>}
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -420,7 +420,7 @@ export default function Admin() {
                     <XAxis dataKey="day" fontSize={11} />
                     <YAxis fontSize={11} />
                     <Tooltip formatter={(v) => [`$${v}`, 'Cost']} />
-                    <Area type="monotone" dataKey="cost" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.15} strokeWidth={2} dot={{ r: 3 }} />
+                    <Area type="monotone" dataKey="cost" stroke="var(--color-accent)" fill="var(--color-accent)" fillOpacity={0.15} strokeWidth={2} dot={{ r: 3 }} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : <p className="mt-2 text-sm text-text3">No spend in this selection yet.</p>}
