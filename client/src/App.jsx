@@ -149,7 +149,7 @@ function Sidebar({ collapsed, setCollapsed }) {
         )}
       </div>
 
-      <div className={onProject && lastProject ? 'mt-2 flex min-h-0 flex-1 flex-col justify-start gap-0.5 overflow-y-auto px-3 pb-1' : 'mt-4 flex-1 space-y-2 overflow-y-auto px-3 pb-2'}>
+      <div className={onProject && lastProject ? 'mt-2 flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto px-3 pb-1' : 'mt-4 flex-1 space-y-2 overflow-y-auto px-3 pb-2'}>
         {user.isAdmin ? (
           <>
             <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
