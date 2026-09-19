@@ -135,7 +135,6 @@ function Sidebar() {
             </span>
             <span className="min-w-0">
               <span className="block whitespace-nowrap text-[14px] font-bold leading-tight">AI Study Companion</span>
-              <span className="block whitespace-nowrap text-[11px] text-text3">Turn documents into mastery</span>
             </span>
           </span>
         ) : (
