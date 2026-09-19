@@ -5,6 +5,7 @@ const aiLogSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
     feature: { type: String, required: true, index: true },
+    provider: { type: String, default: '', index: true },
     model: { type: String, default: '' },
     latency_ms: { type: Number, default: 0 },
     tokens: { type: Number, default: 0 },

@@ -36,7 +36,7 @@ async function logUsage({ user, project, feature, latency_ms, tokens = 0, status
   try {
     const price = DEFAULT_PRICE_PER_1M ?? PRICING_PER_1M[MODEL] ?? 0.5;
     await AiLog.create({
-      user, project, feature, model: MODEL, latency_ms, tokens,
+      user, project, feature, provider: PROVIDER, model: MODEL, latency_ms, tokens,
       cost_est: +((tokens / 1e6) * price).toFixed(6), status, error, retrievalIds,
     });
   } catch (e) { console.error('ailog failed', e.message); }
