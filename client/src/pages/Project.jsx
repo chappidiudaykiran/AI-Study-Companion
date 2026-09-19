@@ -898,18 +898,6 @@ export default function Project() {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  {/* Next step */}
-                  <div className="card fade-up !border-accent/30 !bg-accent/[0.05]">
-                    <h3 className="font-heading flex items-center gap-1.5 font-bold"><Sparkles size={15} className="text-accent" /> Recommended next step</h3>
-                    <p className="mt-1.5 text-sm font-medium">{nextText || 'Upload material, then ask the Tutor.'}</p>
-                    {!!adaptive?.actions?.length && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {adaptive.actions.map((a, i) => (
-                          <button key={i} onClick={() => goTab(a.tab)} title={a.detail || a.label} className="btn btn-outline !py-1.5 !text-xs">{a.label} →</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                   {!materials.length && (
                     <div className="card fade-up">
                       <h3 className="flex items-center gap-1.5 font-heading font-bold"><BookOpen size={16} className="text-accent" /> Get started</h3>
