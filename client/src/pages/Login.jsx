@@ -110,7 +110,7 @@ export default function Login() {
             <span className="font-heading font-bold">AI Study Companion</span>
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">AI Study Companion</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-200 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">AI Study Companion</p>
             <h1 className="mt-2 font-heading text-3xl font-extrabold leading-tight drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)]">Welcome back to your learning space.</h1>
             <p className="mt-2 text-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">Your projects, progress, and learning context are ready when you are.</p>
           </div>
