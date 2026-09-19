@@ -4,7 +4,7 @@ import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
   Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen, LayoutGrid, Plus, LogOut,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
-  ListChecks,   TrendingUp, BarChart3, LayoutDashboard,
+  ListChecks, Layers, TrendingUp, BarChart3, LayoutDashboard,
 } from 'lucide-react';
 import api from './api/client.js';
 import Home from './pages/Home.jsx';
@@ -38,6 +38,7 @@ const TOOLS = [
   { tab: 'materials', label: 'Materials', icon: UploadCloud },
   { tab: 'tutor', label: 'AI Tutor', icon: MessagesSquare, badge: 'AI' },
   { tab: 'quiz', label: 'Quiz', icon: ListChecks },
+  { tab: 'flashcards', label: 'Flashcards', icon: Layers, badge: 'Adaptive' },
   { tab: 'growth', label: 'Growth', icon: TrendingUp },
   { tab: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
@@ -162,15 +163,10 @@ function Sidebar({ collapsed, setCollapsed }) {
             <button onClick={() => nav(lastProject.spaceId ? `/?space=${lastProject.spaceId}` : '/')} title={lastProject.spaceName || 'Space'} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text2 transition hover:bg-surface hover:text-text">
               <FolderOpen size={17} className="shrink-0" /> {!collapsed && <span className="truncate">{lastProject.spaceName || 'Space'}</span>}
             </button>
-            {!collapsed && <p className="label !mb-1 px-3 pt-2">Project</p>}
-            {!collapsed && (
-              <div className="ml-4 border-l border-border pl-2">
-                <button onClick={() => nav(`/project/${pid}?tab=overview`)} title={lastProject.name} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-surface">
-                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/15 text-[11px] font-bold text-accent">{(lastProject.name || 'P')[0]}</span>
-                  <span className="min-w-0"><span className="block truncate font-semibold leading-tight">{lastProject.name}</span><span className="block truncate text-[11px] leading-tight text-text3">{lastProject.spaceName || ''}</span></span>
-                </button>
-              </div>
-            )}
+            <button onClick={() => nav(`/project/${pid}?tab=overview`)} title={lastProject.name} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition text-text2 hover:bg-surface hover:text-text">
+              <FolderOpen size={17} className="shrink-0" />
+              {!collapsed && <span className="truncate">{lastProject.name}</span>}
+            </button>
             {TOOLS.map((t) => {
               const active = activeTab === t.tab;
               return (
