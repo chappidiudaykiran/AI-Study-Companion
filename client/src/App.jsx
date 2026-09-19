@@ -73,7 +73,7 @@ function Sidebar() {
   useEffect(() => {
     if (onProject) return;
     loadSpaces();
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (activeSpaceId) {
