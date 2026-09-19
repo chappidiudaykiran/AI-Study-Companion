@@ -127,7 +127,7 @@ function Sidebar() {
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-[100] hidden ${W} flex-col border-r border-border bg-bg2 transition-all lg:flex`}>
-      <div className="flex items-center gap-1.5 border-b border-border px-3 pb-3 pt-4">
+      <div className="flex h-16 items-center gap-1.5 border-b border-border px-5">
         {!collapsed ? (
           <span className="flex min-w-0 flex-1 items-center gap-1.5">
             <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#4f46e5] text-white">
@@ -281,7 +281,7 @@ function Topbar() {
     nav('/login');
   }
   return (
-    <header className={`navbar ${isAdminUser ? '' : 'lg:left-60'}`}>
+    <header className={`navbar ${isAdminUser ? '' : 'lg:left-64'}`}>
       <div className="container flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Link to="/" className="flex items-center gap-2 lg:hidden">
