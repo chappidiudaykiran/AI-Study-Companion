@@ -130,8 +130,8 @@ function Sidebar() {
       <div className="flex items-center gap-1.5 px-3 pt-4">
         {!collapsed ? (
           <span className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#4f46e5] text-white">
-              <svg width="16" height="16" viewBox="0 0 60 60" fill="none" stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="4.5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.2" /></svg>
+            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#4f46e5] text-white">
+              <svg width="13" height="13" viewBox="0 0 60 60" fill="none" stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.6" /></svg>
             </span>
             <span className="min-w-0">
               <span className="block whitespace-nowrap text-[14px] font-bold leading-tight">AI Study Companion</span>
