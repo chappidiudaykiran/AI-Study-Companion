@@ -2,7 +2,7 @@ import { Routes, Route, Navigate, Link, NavLink, useNavigate, useLocation } from
 import { useEffect, useRef, useState } from 'react';
 import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
-  Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen, LayoutGrid, Plus,
+  Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen, LayoutGrid, Plus, LogOut,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
   ListChecks,   TrendingUp, BarChart3, LayoutDashboard,
 } from 'lucide-react';
@@ -64,6 +64,11 @@ function Sidebar() {
   const activeTab = new URLSearchParams(location.search).get('tab') || 'overview';
   const activeSpaceId = new URLSearchParams(location.search).get('space');
   const selSpace = spaces.find((s) => s._id === activeSpaceId) || null;
+
+  function signOut() {
+    localStorage.clear();
+    nav('/login');
+  }
 
   useEffect(() => {
     if (onProject) return;
@@ -141,9 +146,6 @@ function Sidebar() {
             </svg>
           </span>
         )}
-        <button onClick={() => setCollapsed(!collapsed)} className="btn-ghost btn ml-auto !px-1.5" title="Collapse">
-          {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
-        </button>
       </div>
 
       <div className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
@@ -247,6 +249,20 @@ function Sidebar() {
           </>
         )}
           </>)}
+      </div>
+      <div className="border-t border-border p-3">
+        <NavLink to="/dashboard" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+          <LayoutDashboard size={17} className="shrink-0" /> {!collapsed && 'Dashboard'}
+        </NavLink>
+        <NavLink to="/analytics" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+          <BarChart3 size={17} className="shrink-0" /> {!collapsed && 'Global Analytics'}
+        </NavLink>
+        <button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition text-text2 hover:bg-surface hover:text-text">
+          <LogOut size={17} className="shrink-0" /> {!collapsed && 'Sign out'}
+        </button>
+        <button onClick={() => setCollapsed(!collapsed)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition text-text2 hover:bg-surface hover:text-text">
+          {collapsed ? <ChevronsRight size={17} className="shrink-0" /> : <><span aria-hidden className="shrink-0">‹</span> {!collapsed && 'Collapse'}</>}
+        </button>
       </div>
     </aside>
   );
