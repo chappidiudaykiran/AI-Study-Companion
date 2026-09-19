@@ -1808,20 +1808,88 @@ export default function Project() {
             </div>
           )}
 
-          {tab === 'analytics' && (
+          {tab === 'analytics' && (() => {
+            const attempts = analytics?.recentAttempts || [];
+            const scores = attempts.map((a) => a.score || 0);
+            const best = scores.length ? Math.max(...scores) : 0;
+            const quizAtt = attempts.filter((a) => (a.source || 'quiz') !== 'practice');
+            const pracAtt = attempts.filter((a) => a.source === 'practice');
+            const buckets = [
+              { name: 'Struggling (<60)', count: mastery.filter((m) => m.score < 60).length, fill: '#ef4444' },
+              { name: 'Developing (60–79)', count: mastery.filter((m) => m.score >= 60 && m.score < 80).length, fill: '#f59e0b' },
+              { name: 'Strong (80+)', count: mastery.filter((m) => m.score >= 80).length, fill: '#22c55e' },
+            ];
+            const byType = {};
+            (analytics?.events || []).forEach((e) => { byType[e.type] = (byType[e.type] || 0) + 1; });
+            const typeRows = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 6)
+              .map(([name, count]) => ({ name: name.length > 20 ? `${name.slice(0, 19)}…` : name, count }));
+            const maxType = Math.max(1, ...typeRows.map((t) => t.count));
+            const kpis = [
+              { label: 'Attempts', value: analytics?.attempts ?? 0, sub: `${quizAtt.length} quiz · ${pracAtt.length} practice` },
+              { label: 'Avg score', value: `${analytics?.avgScore ?? 0}%`, sub: 'across all attempts' },
+              { label: 'Best score', value: scores.length ? `${best}%` : '—', sub: scores.length ? 'personal best' : 'no attempts yet' },
+              { label: 'Avg mastery', value: `${avg}%`, sub: `${mastery.length} concepts tracked` },
+              { label: 'Quiz rounds', value: quizAtt.length, sub: 'recent-window count' },
+              { label: 'Practice papers', value: pracAtt.length, sub: 'recent-window count' },
+              { label: 'Tutor chats', value: sessions.length, sub: `${chat.length} messages in open chat` },
+              { label: 'Events logged', value: analytics?.events?.length ?? 0, sub: 'learning actions tracked' },
+            ];
+            return (
             <div className="mt-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-heading text-xl font-extrabold">Analytics</h2>
+                  <p className="text-sm text-text2">Everything measured in <b>this project only</b> — attempts, scores, mastery distribution and activity.</p>
+                </div>
+                <button onClick={refreshStats} className="btn btn-outline !py-1.5 !text-xs">Refresh stats</button>
+              </div>
               <div className="grid-4 fade-up">
-                <div className="card"><p className="label">Attempts</p><p className="font-heading text-3xl font-extrabold">{analytics?.attempts ?? 0}</p></div>
-                <div className="card"><p className="label">Avg score</p><p className="font-heading text-3xl font-extrabold">{analytics?.avgScore ?? 0}%</p></div>
-                <div className="card"><p className="label">Concepts tracked</p><p className="font-heading text-3xl font-extrabold">{mastery.length}</p></div>
-                <div className="card"><p className="label">Events logged</p><p className="font-heading text-3xl font-extrabold">{analytics?.events?.length ?? 0}</p></div>
+                {kpis.map((k) => (
+                  <div key={k.label} className="card" title={k.sub}>
+                    <p className="label">{k.label}</p>
+                    <p className="font-heading text-3xl font-extrabold">{k.value}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-text3">{k.sub}</p>
+                  </div>
+                ))}
               </div>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="card fade-up">
-                  <h3 className="font-heading font-bold">Mastery by concept</h3>
+                  <h3 className="font-heading font-bold">Score trend <span className="text-xs font-normal text-text3">attempt score over time — rising = learning</span></h3>
+                  {attempts.length ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <LineChart data={attempts.map((a, i) => ({ n: `#${i + 1}`, score: a.score, src: a.source || 'quiz' }))}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                        <XAxis dataKey="n" fontSize={11} />
+                        <YAxis domain={[0, 100]} fontSize={11} />
+                        <Tooltip formatter={(v, _n, p) => [`${v}% (${p?.payload?.src})`, 'score']} />
+                        <Line type="monotone" dataKey="score" stroke="var(--color-accent)" strokeWidth={2} dot={{ r: 3 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : <p className="mt-2 text-sm text-text3">No attempts yet — trend appears after your first quiz or practice paper.</p>}
+                </div>
+                <div className="card fade-up">
+                  <h3 className="font-heading font-bold">Mastery distribution <span className="text-xs font-normal text-text3">where your concepts sit</span></h3>
                   {mastery.length ? (
                     <ResponsiveContainer width="100%" height={240}>
-                      <BarChart data={mastery.map((m) => ({ name: m.concept.slice(0, 12), score: m.score }))}>
+                      <BarChart data={buckets} layout="vertical" margin={{ left: 8, right: 16 }}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                        <XAxis type="number" fontSize={11} allowDecimals={false} />
+                        <YAxis type="category" dataKey="name" fontSize={11} width={130} />
+                        <Tooltip />
+                        <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                          {buckets.map((b) => <Cell key={b.name} fill={b.fill} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="mt-2 text-sm text-text3">Take a quiz to see struggling / developing / strong splits.</p>}
+                </div>
+              </div>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="card fade-up">
+                  <h3 className="font-heading font-bold">Mastery by concept <span className="text-xs font-normal text-text3">weakest first</span></h3>
+                  {mastery.length ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={mastery.slice().sort((a, b) => a.score - b.score).slice(0, 10).map((m) => ({ name: m.concept.slice(0, 12), score: m.score }))}>
                         <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                         <XAxis dataKey="name" fontSize={11} interval={0} angle={-15} dy={8} height={50} />
                         <YAxis domain={[0, 100]} fontSize={11} />
@@ -1829,34 +1897,51 @@ export default function Project() {
                         <Bar dataKey="score" fill="var(--color-accent)" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
-                  ) : <p className="text-sm text-text3">Take a quiz to see mastery bars.</p>}
+                  ) : <p className="mt-2 text-sm text-text3">Take a quiz to see mastery bars.</p>}
                 </div>
                 <div className="card fade-up">
-                  <h3 className="font-heading font-bold">Score trend (recent attempts)</h3>
-                  {(analytics?.recentAttempts || []).length ? (
-                    <ResponsiveContainer width="100%" height={240}>
-                      <LineChart data={analytics.recentAttempts.map((a, i) => ({ n: i + 1, score: a.score }))}>
-                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                        <XAxis dataKey="n" fontSize={11} label={{ value: 'attempt', position: 'insideBottom', offset: -2, fontSize: 10 }} />
-                        <YAxis domain={[0, 100]} fontSize={11} />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="score" stroke="var(--color-accent)" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : <p className="text-sm text-text3">No attempts yet — trend appears after quizzes.</p>}
+                  <h3 className="font-heading font-bold">Activity by type <span className="text-xs font-normal text-text3">what you do most</span></h3>
+                  {typeRows.length ? (
+                    <div className="mt-3 space-y-2">
+                      {typeRows.map((t) => (
+                        <div key={t.name}>
+                          <div className="flex justify-between text-xs"><span className="truncate font-semibold">{t.name}</span><b>{t.count}</b></div>
+                          <div className="mt-0.5 h-2 rounded-full bg-surface"><div className="h-2 rounded-full bg-accent" style={{ width: `${Math.max(4, Math.round((t.count / maxType) * 100))}%` }} /></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="mt-2 text-sm text-text3">No activity yet — quiz, tutor and flashcard actions appear here.</p>}
                 </div>
               </div>
-              <div className="card">
-                <h3 className="font-heading font-bold">Recent activity</h3>
-                <div className="mt-2 max-h-56 space-y-1 overflow-auto text-xs text-text2">
-                  {(analytics?.events || []).slice(0, 15).map((e, i) => (
-                    <p key={i} className="rounded-lg bg-bg3 px-2 py-1.5"><b>{e.type}</b> · {new Date(e.at || e.createdAt).toLocaleString()} · {JSON.stringify(e.payload || {}).slice(0, 100)}</p>
-                  ))}
-                  {!(analytics?.events || []).length && <p className="text-sm text-text3">No activity logged yet.</p>}
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="card">
+                  <h3 className="font-heading font-bold">Attempt history <span className="text-xs font-normal text-text3">newest first</span></h3>
+                  {attempts.length ? (
+                    <div className="mt-2 max-h-64 space-y-1 overflow-auto">
+                      {attempts.slice().reverse().map((a, i) => (
+                        <p key={i} className="flex items-center justify-between gap-2 rounded-lg bg-bg3 px-3 py-2 text-sm">
+                          <span className="font-semibold">Attempt #{attempts.length - i}</span>
+                          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">{a.source || 'quiz'}</span>
+                          <span className={`badge ${(a.score ?? 0) >= 60 ? 'badge-low' : 'badge-high'}`}>{a.score ?? 0}%</span>
+                          <span className="hidden text-xs text-text3 sm:inline">{a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}</span>
+                        </p>
+                      ))}
+                    </div>
+                  ) : <p className="mt-2 text-sm text-text3">No attempts yet — start from Quiz or Practice.</p>}
+                </div>
+                <div className="card">
+                  <h3 className="font-heading font-bold">Recent activity <span className="text-xs font-normal text-text3">latest learning events</span></h3>
+                  <div className="mt-2 max-h-64 space-y-1 overflow-auto text-xs text-text2">
+                    {(analytics?.events || []).slice(0, 15).map((e, i) => (
+                      <p key={i} className="rounded-lg bg-bg3 px-2 py-1.5"><span className="rounded-full bg-accent/10 px-2 py-0.5 font-bold text-accent">{e.type}</span> · {new Date(e.at || e.createdAt).toLocaleString()} · {JSON.stringify(e.payload || {}).slice(0, 100)}</p>
+                    ))}
+                    {!(analytics?.events || []).length && <p className="text-sm text-text3">No activity logged yet.</p>}
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Step checklist — hidden on the full-bleed tutor pane so it uses all space */}
           {tab !== 'tutor' && (
