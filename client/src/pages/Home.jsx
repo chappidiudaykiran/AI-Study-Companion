@@ -9,16 +9,17 @@ function initial(name) {
   return (name || 'S').trim().charAt(0).toUpperCase();
 }
 
-const isAdmin = (() => {
+function currentIsAdmin() {
   try {
     return !!JSON.parse(localStorage.getItem('user') || '{}').isAdmin;
   } catch {
     return false;
   }
-})();
+}
 
 export default function Home() {
   const nav = useNavigate();
+  const isAdmin = currentIsAdmin();
   const [spaces, setSpaces] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [projects, setProjects] = useState([]);
