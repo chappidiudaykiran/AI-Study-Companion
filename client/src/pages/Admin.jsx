@@ -196,7 +196,7 @@ export default function Admin() {
     <div className="theme-dashboard min-h-screen pb-16">
       <div className="container max-w-6xl pt-6">
         {/* HERO — very light sky-blue Admin Dashboard card */}
-        <div className="card fade-up !border-sky-200/70 !bg-sky-50 !p-6 dark:!border-white/10 dark:!bg-sky-950/40">
+        <div className="card fade-up !border-sky-300/60 !bg-sky-100 !p-6 dark:!border-white/10 dark:!bg-sky-950/40">
           <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-text3"><ShieldCheck size={13} /> Admin</p>
