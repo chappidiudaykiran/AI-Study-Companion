@@ -197,7 +197,12 @@ function Sidebar() {
             </button>
             )}
             {!collapsed && !selSpace && (
-              <button onClick={() => nav('/?createSpace=1')} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+              <button onClick={() => {
+                const target = '/?createSpace=1';
+                const cur = location.pathname + location.search;
+                if (cur === target || cur === '/?createSpace=1') { nav('/'); setTimeout(() => nav(target), 60); }
+                else nav(target);
+              }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
                 + Create Space
               </button>
             )}
@@ -224,7 +229,12 @@ function Sidebar() {
                 {!spaceProjects.length && !collapsed && <p className="px-3 text-xs text-text3">No projects yet — create one below.</p>}
                 {!collapsed && (
                 <>
-                  <button onClick={() => nav(`/?space=${sel._id}&newProject=1`)} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+                  <button onClick={() => {
+                    const target = `/?space=${sel._id}&newProject=1`;
+                    const cur = location.pathname + location.search;
+                    if (cur === target) { nav(`/?space=${sel._id}`); setTimeout(() => nav(target), 60); }
+                    else nav(target);
+                  }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
                     + Create Project
                   </button>
                 </>
