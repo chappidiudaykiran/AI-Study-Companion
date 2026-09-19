@@ -9,7 +9,8 @@ const Space = require('../models/Space');
 const Material = require('../models/Material');
 const Message = require('../models/Message');
 const Recommendation = require('../models/Recommendation');
-const { buildRecommendation, growthBuckets } = require('../services/recommendService');
+const Concept = require('../models/Concept');
+const { buildRecommendation, growthBuckets, buildAdaptive } = require('../services/recommendService');
 
 const router = express.Router();
 router.use(auth);
@@ -28,6 +29,50 @@ router.get('/projects/:projectId/recommendations', loadProject, async (req, res,
     const rec = await buildRecommendation({ projectId: req.project._id, userId: req.user._id, project: req.project });
     const all = await Recommendation.find({ project: req.project._id, user: req.user._id }).sort({ createdAt: -1 }).limit(10).lean();
     res.json({ current: rec, history: all });
+  } catch (e) { next(e); }
+});
+
+// GET /api/projects/:projectId/concepts — concepts divided by source material,
+// each merged with the learner's mastery (score/mistakes/status).
+router.get('/projects/:projectId/concepts', loadProject, async (req, res, next) => {
+  try {
+    const [concepts, mastery] = await Promise.all([
+      Concept.find({ project: req.project._id }).sort({ createdAt: 1 }).lean(),
+      Mastery.find({ project: req.project._id, user: req.user._id }).lean(),
+    ]);
+    const byName = Object.fromEntries(mastery.map((m) => [m.concept, m]));
+    const growth = Object.fromEntries(growthBuckets(mastery).map((g) => [g.concept, g]));
+    const list = concepts.map((c) => {
+      const m = byName[c.name];
+      const g = growth[c.name];
+      return {
+        name: c.name,
+        description: c.description || '',
+        docName: c.docName || '',
+        material: c.material || null,
+        score: m?.score ?? null,
+        mistakes: m?.mistakes ?? 0,
+        status: g?.status || 'unattempted',
+        delta: g?.delta ?? 0,
+      };
+    });
+    // concepts with mastery but no Concept row (e.g. from flashcards) still show
+    for (const m of mastery) {
+      if (!list.some((c) => c.name === m.concept)) {
+        const g = growth[m.concept];
+        list.push({ name: m.concept, description: '', docName: '', material: null, score: m.score, mistakes: m.mistakes || 0, status: g?.status || 'stable', delta: g?.delta ?? 0 });
+      }
+    }
+    res.json({ concepts: list });
+  } catch (e) { next(e); }
+});
+
+// GET /api/projects/:projectId/adaptive — one payload for EVERY tab banner
+// (overview, materials, tutor, concepts, quiz, flashcards, assignments, analytics)
+router.get('/projects/:projectId/adaptive', loadProject, async (req, res, next) => {
+  try {
+    const adaptive = await buildAdaptive({ projectId: req.project._id, userId: req.user._id, project: req.project });
+    res.json({ adaptive });
   } catch (e) { next(e); }
 });
 

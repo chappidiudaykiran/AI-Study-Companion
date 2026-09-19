@@ -79,7 +79,13 @@ async function processMaterial(materialId) {
         if (!c?.name) continue;
         await Concept.updateOne(
           { project: material.project, name: c.name.trim() },
-          { $set: { description: (c.description || '').slice(0, 300) } },
+          {
+            $set: {
+              description: (c.description || '').slice(0, 300),
+              material: material._id,
+              docName: material.filename || '',
+            },
+          },
           { upsert: true }
         );
       }

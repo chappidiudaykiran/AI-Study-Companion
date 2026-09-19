@@ -1,30 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2, Layers, RotateCcw, ThumbsUp, ThumbsDown, Wand2 } from 'lucide-react';
+import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2, Layers, RotateCcw, ThumbsUp, ThumbsDown, Wand2, Home as HomeIcon, LayoutDashboard } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
 import MathText from '../components/MathText.jsx';
+import { Skel, TextLines, ChatThread, ListRows, PageSkeleton } from '../components/Shimmer.jsx';
 import api from '../api/client.js';
 import { useCrumbs } from '../crumbs.js';
 
 const SUGGESTIONS = ['Summarize my document', 'Explain simply with an example', 'Give key definitions', 'What should I revise?'];
 
 const STEPS = [
-  { id: 'materials', n: 1, label: 'Materials', icon: UploadCloud, hint: 'Upload PDF first' },
-  { id: 'tutor', n: 2, label: 'Tutor', icon: MessagesSquare, hint: 'Ask, get cited answers' },
-  { id: 'quiz', n: 3, label: 'Quiz', icon: ListChecks, hint: 'MCQ + open-ended' },
-  { id: 'flashcards', n: 4, label: 'Flashcards', icon: Layers, hint: 'Adaptive drill' },
-  { id: 'growth', n: 5, label: 'Growth', icon: TrendingUp, hint: 'Mastery + next step' },
-  { id: 'analytics', n: 6, label: 'Analytics', icon: BarChart3, hint: 'Activity + scores' },
+  { id: 'overview', n: 1, label: 'Overview', icon: HomeIcon, hint: 'Project snapshot' },
+  { id: 'materials', n: 2, label: 'Materials', icon: UploadCloud, hint: 'Upload PDF first' },
+  { id: 'tutor', n: 3, label: 'AI Tutor', icon: MessagesSquare, hint: 'Ask, get cited answers' },
+  { id: 'concepts', n: 4, label: 'Concepts', icon: BookOpen, hint: 'Divided by material' },
+  { id: 'quiz', n: 5, label: 'Quiz', icon: ListChecks, hint: 'MCQ + open-ended' },
+  { id: 'dashboard', n: 6, label: 'Dashboard', icon: LayoutDashboard, hint: 'This project only' },
+  { id: 'analytics', n: 7, label: 'Analytics', icon: BarChart3, hint: 'This project only' },
 ];
 
-// Sidebar nav like Screenshot 197: AI Tutor / Materials / Concepts / Quiz / Assignments / Analytics
+// Sidebar nav (mobile): per-project tools only — dashboard/analytics are project-scoped
 const SIDEBAR_NAV = [
-  { id: 'tutor', label: 'AI Tutor', icon: MessagesSquare, badge: 'AI' },
+  { id: 'overview', label: 'Overview', icon: HomeIcon },
   { id: 'materials', label: 'Materials', icon: Folder },
+  { id: 'tutor', label: 'AI Tutor', icon: MessagesSquare, badge: 'AI' },
   { id: 'concepts', label: 'Concepts', icon: BookOpen },
   { id: 'quiz', label: 'Quiz', icon: Target },
-  { id: 'flashcards', label: 'Flashcards', icon: Layers, badge: 'Adaptive' },
-  { id: 'assignments', label: 'Assignments', icon: FileText },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
 
@@ -34,9 +36,9 @@ const TAB_LABEL = {
   materials: 'Materials',
   concepts: 'Concepts',
   quiz: 'Quiz',
-  flashcards: 'Flashcards',
   assignments: 'Assignments',
   growth: 'Growth',
+  dashboard: 'Dashboard',
   analytics: 'Analytics',
 };
 
@@ -84,13 +86,16 @@ export default function Project() {
   const [asking, setAsking] = useState(false);
   // Tutor saved chats (left CHATS panel, like screenshot)
   const [sessions, setSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [activeSession, setActiveSession] = useState('default');
   const [chatSearch, setChatSearch] = useState('');
   const [copiedIdx, setCopiedIdx] = useState(null);
+  const [chatsCollapsed, setChatsCollapsed] = useState(false);
   const chatBoxRef = useRef(null);
   const quizBoxRef = useRef(null);
   const [questions, setQuestions] = useState([]);
   const [mastery, setMastery] = useState([]);
+  const [concepts, setConcepts] = useState([]);
   const [growth, setGrowth] = useState([]);
   const [rec, setRec] = useState(null);
   const [adaptive, setAdaptive] = useState(null);
@@ -101,8 +106,11 @@ export default function Project() {
   const [quizInput, setQuizInput] = useState('');
   const [answeringId, setAnsweringId] = useState(null);
   const [startingQuiz, setStartingQuiz] = useState(false);
+  // In-chat summaries posted by the Summarize chip (built from this chat only)
+  const [quizNotes, setQuizNotes] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [materials, setMaterials] = useState([]);
+  const [matsLoading, setMatsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   // Flashcards (adaptive drill deck)
   const [cards, setCards] = useState([]);
@@ -128,10 +136,13 @@ export default function Project() {
   }, [tab]);
 
   async function loadMaterials() {
+    setMatsLoading(true);
     try {
       const { data } = await api.get(`/api/projects/${id}/materials`);
       setMaterials(data.materials || []);
-    } catch {}
+    } catch {} finally {
+      setMatsLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -174,7 +185,7 @@ export default function Project() {
       const first = list[0]?.id || 'default';
       setActiveSession(first);
       return api.get(`/api/projects/${id}/tutor/history`, { params: { session: first } });
-    }).then((r) => setChat(r?.data?.messages || [])).catch(() => {});
+    }).then((r) => setChat(r?.data?.messages || [])).catch(() => {}).finally(() => setSessionsLoading(false));
     refreshStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, searchParams]);
@@ -194,6 +205,10 @@ export default function Project() {
     try {
       const m = await api.get(`/api/projects/${id}/mastery`);
       setMastery(m.data.mastery || []);
+      try {
+        const c = await api.get(`/api/projects/${id}/concepts`);
+        setConcepts(c.data.concepts || []);
+      } catch {}
       const g = await api.get(`/api/projects/${id}/growth`);
       setGrowth(g.data.growth || []);
       const r = await api.get(`/api/projects/${id}/recommendations`);
@@ -223,13 +238,14 @@ export default function Project() {
 
   const avg = mastery.length ? Math.round(mastery.reduce((s, m) => s + m.score, 0) / mastery.length) : 0;
   const done = {
+    overview: true,
     materials: matStatus.includes('ready'),
     tutor: chat.length > 0,
     concepts: mastery.length > 0,
     quiz: questions.length > 0 || (analytics?.attempts || 0) > 0,
-    flashcards: cards.length > 0,
     assignments: (analytics?.recentAttempts || []).length > 0,
     growth: growth.length > 0,
+    dashboard: (analytics?.attempts || 0) > 0,
     analytics: !!analytics,
   };
 
@@ -319,18 +335,106 @@ export default function Project() {
   }
 
   function tutorChipAction(chip) {
-    const weak = adaptive?.weak?.[0]?.concept || '';
-    if (chip === 'Quiz me' || chip === 'Practice') { startQuiz(4); goTab('quiz'); return; }
-    if (chip === 'Give exam') { startQuiz(8); goTab('quiz'); return; }
-    if (chip === 'Flashcards') { goTab('flashcards'); return; }
-    const lastUser = [...chat].reverse().find((m) => m.role === 'user')?.text;
-    const topic = lastUser ? `"${lastUser.slice(0, 80)}"` : (weak || 'this concept');
-    sendText(chip === 'Explain simply'
-      ? `Explain ${topic} simply with one example from my PDFs`
-      : `Explain ${topic} deeply, step by step, from my PDFs`);
+    if (asking || startingQuiz || genCards) return;
+    if (chip === 'Summarize') {
+      return sendText('Summarize what we have discussed in this chat in 5-8 short bullet points. Use only our conversation and the project materials.');
+    }
+    const concept = detectChatConcept();
+    if (chip === 'Deep Dive') {
+      return sendText(`Explain ${concept || 'the current topic'} deeply, step by step, with examples from my PDFs.`);
+    }
+    if (chip === 'Generate Quiz') return startTutorQuiz(null);
+    if (chip === 'Practice') return startTutorQuiz(concept || undefined);
+    if (chip === 'Create Flashcards') return startTutorCards(concept);
   }
 
-  const TUTOR_CHIPS = ['Quiz me', 'Practice', 'Flashcards', 'Explain simply', 'Explain deeply', 'Give exam'];
+  const TUTOR_CHIPS = [
+    { label: 'Summarize', icon: FileText },
+    { label: 'Deep Dive', icon: BookOpen },
+    { label: 'Generate Quiz', icon: ListChecks },
+    { label: 'Create Flashcards', icon: Layers },
+    { label: 'Practice', icon: Target },
+  ];
+
+  // Concept behind the current chat: match the last user message against known
+  // concepts, else fall back to the weakest concept.
+  function detectChatConcept() {
+    const text = [...chat].reverse().find((m) => m.role === 'user')?.text || '';
+    const low = text.toLowerCase();
+    const names = (concepts.length ? concepts.map((c) => c.name) : mastery.map((m) => m.concept));
+    return names.find((n) => n && low.includes(n.toLowerCase())) || adaptive?.weak?.[0]?.concept || '';
+  }
+
+  // In-chat quiz widgets (answered inline, never leaves the tutor thread)
+  const [tutorQuizzes, setTutorQuizzes] = useState([]);
+
+  async function startTutorQuiz(concept) {
+    setStartingQuiz(true);
+    try {
+      const body = { count: 3 };
+      if (concept) body.concept = concept;
+      const { data } = await api.post(`/api/projects/${id}/quiz/start`, body);
+      setTutorQuizzes((w) => [...w, {
+        key: `tq${Date.now()}`,
+        concept: concept || 'Adaptive mix',
+        questions: (data.questions || []).map((x) => ({ ...x, answer: '', result: null, answering: false })),
+      }]);
+      refreshStats();
+    } finally {
+      setStartingQuiz(false);
+    }
+  }
+
+  async function answerTutorQuiz(wkey, qid, text) {
+    const t = (text || '').trim();
+    if (!t) return;
+    setTutorQuizzes((ws) => ws.map((w) => w.key === wkey
+      ? { ...w, questions: w.questions.map((x) => x.id === qid ? { ...x, answer: t, answering: true } : x) }
+      : w));
+    try {
+      const { data } = await api.post(`/api/quiz/${qid}/answer`, { answer: t });
+      setTutorQuizzes((ws) => ws.map((w) => w.key === wkey
+        ? { ...w, questions: w.questions.map((x) => x.id === qid ? { ...x, result: data, answering: false } : x) }
+        : w));
+    } catch (err) {
+      setTutorQuizzes((ws) => ws.map((w) => w.key === wkey
+        ? { ...w, questions: w.questions.map((x) => x.id === qid ? { ...x, answering: false, result: { score: 0, feedback: { text: err.response?.data?.error || 'Grading failed.' } } } : x) }
+        : w));
+    } finally {
+      refreshStats();
+    }
+  }
+
+  // In-chat flashcard widgets (flip + review inline, deck stays in sync)
+  const [tutorCards, setTutorCards] = useState([]);
+
+  async function startTutorCards(concept) {
+    setGenCards(true);
+    try {
+      const body = { count: 6 };
+      if (concept) body.concept = concept;
+      const { data } = await api.post(`/api/projects/${id}/flashcards/generate`, body);
+      await loadFlashcards();
+      setTutorCards((w) => [...w, {
+        key: `tc${Date.now()}`,
+        concept: concept || (data.adaptive?.focus || [])[0] || 'Adaptive',
+        cards: (data.cards || []).map((c) => ({ ...c, flipped: false, reviewed: null, msg: '' })),
+      }]);
+      refreshStats();
+    } finally {
+      setGenCards(false);
+    }
+  }
+
+  async function reviewTutorCard(wkey, cardId, known) {
+    try {
+      const { data } = await api.post(`/api/flashcards/${cardId}/review`, { known });
+      setTutorCards((ws) => ws.map((w) => w.key === wkey
+        ? { ...w, cards: w.cards.map((c) => c._id === cardId ? { ...c, reviewed: known, msg: data.adaptive?.suggestion || '' } : c) }
+        : w));
+      refreshStats();
+    } catch {}
+  }
 
   function fmtTime(ts) {
     if (!ts) return '';
@@ -346,12 +450,15 @@ export default function Project() {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return sameDay ? 'Today' : `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
   }
-
-  async function startQuiz(count = 4) {    setStartingQuiz(true);
+  async function startQuiz(count = 4, concept = null) {
+    setStartingQuiz(true);
     try {
-      const { data } = await api.post(`/api/projects/${id}/quiz/start`, { count });
+      const body = { count };
+      if (concept) body.concept = concept;
+      const { data } = await api.post(`/api/projects/${id}/quiz/start`, body);
       const qs = data.questions.map((x) => ({ ...x, answer: '', result: null }));
       setQuestions(qs);
+      setQuizNotes([]);
       setQuizTip(data.adaptive?.tip || '');
       setActiveQuizId(qs[0]?.id || null);
       setQuizInput('');
@@ -385,19 +492,61 @@ export default function Project() {
     setQuizInput('');
   }
 
-  const QUIZ_CHIPS = ['Quiz me', 'Practice', 'Flashcards', 'Explain simply', 'Explain deeply', 'Give exam'];
+  // Bottom action row (one line, like the tutor empty-state): every action is
+  // built from THIS quiz chat only — active concept, covered concepts, scores.
+  const QUIZ_CHIPS = [
+    { label: 'Summarize', icon: FileText },
+    { label: 'Deep Dive', icon: BookOpen },
+    { label: 'Generate Quiz', icon: ListChecks },
+    { label: 'Create Flashcards', icon: Layers },
+    { label: 'Practice', icon: Target },
+  ];
+
+  function activeQuiz() {
+    return questions.find((v) => v.id === activeQuizId) || questions[0] || null;
+  }
+
+  function summarizeChat() {
+    if (!questions.length) return;
+    const answered = questions.filter((v) => v.result);
+    const byConcept = {};
+    for (const v of questions) {
+      (byConcept[v.concept] ||= { total: 0, done: 0, sum: 0 });
+      byConcept[v.concept].total += 1;
+      if (v.result) { byConcept[v.concept].done += 1; byConcept[v.concept].sum += v.result.score || 0; }
+    }
+    const lines = Object.entries(byConcept).map(([c, s]) =>
+      `• ${c}: ${s.done}/${s.total} answered${s.done ? `, avg ${Math.round(s.sum / s.done)}%` : ''}`
+    );
+    const weak = Object.entries(byConcept)
+      .filter(([, s]) => s.done)
+      .sort((a, b) => (a[1].sum / a[1].done) - (b[1].sum / b[1].done))[0];
+    const text = [
+      `Session summary — ${questions.length} questions, ${answered.length} answered.`,
+      ...lines,
+      weak
+        ? `Weakest in this chat: ${weak[0]} (${Math.round(weak[1].sum / weak[1].done)}%). Revise it, then hit Practice.`
+        : `Answer the questions above, then hit Practice to drill the weakest one.`,
+    ].join('\n');
+    setQuizNotes((n) => [...n, { id: `n${Date.now()}`, text }]);
+  }
 
   function quizChipAction(chip) {
-    const active = questions.find((v) => v.id === activeQuizId) || questions[0];
+    const active = activeQuiz();
     const concept = active?.concept || adaptive?.weak?.[0]?.concept || '';
-    if (chip === 'Quiz me' || chip === 'Practice') return startQuiz(4);
-    if (chip === 'Give exam') return startQuiz(8);
-    if (chip === 'Flashcards') return goTab('flashcards');
-    const prompt = chip === 'Explain simply'
-      ? `Explain ${concept || 'this concept'} simply with an example from my PDFs`
-      : `Explain ${concept || 'this concept'} deeply with step-by-step reasoning from my PDFs`;
-    goTab('tutor');
-    setTimeout(() => sendText(prompt), 300);
+    if (chip === 'Summarize') return summarizeChat();
+    if (chip === 'Generate Quiz') return startQuiz(4);
+    if (chip === 'Practice') return startQuiz(4, concept || undefined);
+    if (chip === 'Create Flashcards') {
+      if (concept) generateFlashcards(concept);
+      goTab('flashcards');
+      return;
+    }
+    if (chip === 'Deep Dive') {
+      const topic = concept || 'this concept';
+      goTab('tutor');
+      setTimeout(() => sendText(`Explain ${topic} deeply, step by step, with examples from my PDFs`), 300);
+    }
   }
 
   async function generateFlashcards(focusConcept) {
@@ -432,7 +581,7 @@ export default function Project() {
     }
   }
 
-  if (!project) return <div className="container"><p className="text-sm">Loading... <Link to="/" className="text-accent hover:underline">Home</Link></p></div>;
+  if (!project) return <div className="theme-dashboard min-h-screen"><PageSkeleton /></div>;
   return (
     <div className={`theme-dashboard min-h-screen ${tab === 'tutor' ? 'pb-0' : 'pb-16'}`}>
       {/* In-page nav — mobile only (global sidebar rules on desktop) */}
@@ -479,11 +628,11 @@ export default function Project() {
         </div>
       </aside>
 
-      {/* Main content — tutor goes full-bleed to use all surrounding space */}
-      <div className={tab === 'tutor' ? 'px-2 pt-2' : 'container pt-6'}>
+      {/* Main content — tutor goes edge-to-edge with zero padding */}
+      <div className={tab === 'tutor' ? '' : 'container pt-6'}>
         <div className={tab === 'tutor' ? '' : 'mt-3'}>
-          {/* Adaptive recommendations — everywhere except overview/growth (own card), tutor (own chips) and materials (clean upload view) */}
-          {tab !== 'overview' && tab !== 'growth' && tab !== 'tutor' && tab !== 'materials' && (
+          {/* Adaptive recommendations — everywhere except overview/growth (own card), tutor (own chips), materials (clean upload view) and concepts (grouped view) */}
+          {tab !== 'overview' && tab !== 'growth' && tab !== 'tutor' && tab !== 'materials' && tab !== 'concepts' && (
             <div className="mb-4"><AdaptiveBanner adaptive={adaptive} rec={rec} onGo={goTab} /></div>
           )}
           {tab === 'overview' && (
@@ -512,6 +661,7 @@ export default function Project() {
                     <button key={s.id} onClick={() => goTab(s.id)} className="btn btn-outline !py-1.5 !text-xs">{s.label}</button>
                   ))}
                   <button onClick={() => goTab('concepts')} className="btn btn-outline !py-1.5 !text-xs">Concepts</button>
+                  <button onClick={() => goTab('growth')} className="btn btn-outline !py-1.5 !text-xs">Growth</button>
                   <button onClick={() => goTab('assignments')} className="btn btn-outline !py-1.5 !text-xs">Assignments</button>
                 </div>
               </div>
@@ -551,8 +701,8 @@ export default function Project() {
                   <button onClick={() => goTab('tutor')} className="btn btn-outline !py-1.5 !text-xs">Tutor</button>
                   <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Adaptive Quiz</button>
                   <button onClick={() => goTab('flashcards')} className="btn btn-outline !py-1.5 !text-xs">Flashcards{adaptive?.dueCards ? ` (${adaptive.dueCards} due)` : ''}</button>
-                  <Link to="/dashboard" className="btn btn-outline !py-1.5 !text-xs">Dashboard</Link>
-                  <Link to="/analytics" className="btn btn-outline !py-1.5 !text-xs">Global Analytics</Link>
+                  <button onClick={() => goTab('dashboard')} className="btn btn-outline !py-1.5 !text-xs">Dashboard</button>
+                  <button onClick={() => goTab('analytics')} className="btn btn-outline !py-1.5 !text-xs">Analytics</button>
                 </div>
               </div>
             </div>
@@ -570,6 +720,16 @@ export default function Project() {
               <div className="mt-4">
                 <h3 className="font-heading font-bold">Documents in this project</h3>
                 <div className="mt-2 space-y-2">
+                  {matsLoading && (
+                    <div className="space-y-2">
+                      {[0, 1].map((i) => (
+                        <div key={i} className="flex items-center gap-3 rounded-xl border border-border bg-bg3 px-3 py-2.5">
+                          <div className="flex-1 space-y-1.5"><Skel className="h-3.5 w-2/3" /><Skel className="h-2.5 w-1/3" /></div>
+                          <Skel className="h-5 w-16 !rounded-full" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {materials.map((m) => (
                     <div key={m._id} className="flex items-center gap-3 rounded-xl border border-border bg-bg3 px-3 py-2.5 text-sm">
                       <span className="min-w-0 flex-1">
@@ -582,34 +742,62 @@ export default function Project() {
                       </button>
                     </div>
                   ))}
-                  {!materials.length && <p className="text-sm text-text3">No documents yet.</p>}
+                  {!materials.length && !matsLoading && <p className="text-sm text-text3">No documents yet.</p>}
                 </div>
               </div>
             </form>
           )}
 
-          {tab === 'concepts' && (
-            <div className="card fade-up mt-4">
-              <h2 className="font-heading text-lg font-bold">Concepts</h2>
-              <p className="text-sm text-text2">Key ideas extracted from your materials, with mastery scores. Weak concepts feed the adaptive Quiz + Flashcards.</p>
-              <div className="mt-3 space-y-2">
-                {mastery.map((m) => (
-                  <div key={m.concept}>
-                    <div className="flex justify-between text-sm"><span className="font-medium">{m.concept}</span><span>{m.score}% · {m.mistakes} mistakes</span></div>
-                    <div className="h-2 rounded bg-surface"><div className="h-2 rounded bg-accent" style={{ width: `${m.score}%` }} /></div>
-                    <div className="mt-1 flex gap-1.5">
-                      <button onClick={() => { generateFlashcards(m.concept); goTab('flashcards'); }} className="text-[11px] font-semibold text-accent hover:underline">Drill {m.concept} cards →</button>
-                    </div>
+          {tab === 'concepts' && (() => {
+            const groups = new Map();
+            for (const c of concepts) {
+              const key = c.docName || 'Other / earlier uploads';
+              if (!groups.has(key)) groups.set(key, []);
+              groups.get(key).push(c);
+            }
+            for (const list of groups.values()) list.sort((a, b) => (a.score ?? 101) - (b.score ?? 101));
+            const weakCount = concepts.filter((c) => c.score != null && c.score < 60).length;
+            return (
+            <div className="mt-4 space-y-3">
+              <div className="card fade-up">
+                <h2 className="font-heading flex items-center gap-2 text-lg font-bold"><BookOpen size={18} /> Concepts <span className="badge badge-info">{concepts.length}</span></h2>
+                <p className="text-sm text-text2">Divided by the material each concept was extracted from — weakest first inside every document.{weakCount > 0 && <b> {weakCount} need repair.</b>}</p>
+              </div>
+              {[...groups.entries()].map(([doc, list]) => (
+                <div key={doc} className="card">
+                  <p className="flex items-center gap-2 font-heading font-bold"><FileText size={15} className="text-accent" /><span className="truncate">{doc}</span><span className="badge badge-info ml-auto shrink-0">{list.length}</span></p>
+                  <div className="mt-3 space-y-3">
+                    {list.map((m) => (
+                      <div key={m.name}>
+                        <div className="flex flex-wrap items-center justify-between gap-1 text-sm">
+                          <span className="font-medium">{m.name}</span>
+                          <span className="flex items-center gap-1.5 text-xs text-text3">
+                            {m.status !== 'unattempted' && <span className={`badge ${m.status === 'improving' ? 'badge-low' : m.status === 'needs-attention' ? 'badge-high' : 'badge-medium'}`}>{m.status}</span>}
+                            {m.score == null ? 'not attempted' : `${m.score}% · ${m.mistakes} mistakes`}
+                          </span>
+                        </div>
+                        {!!m.description && <p className="mt-0.5 truncate text-xs text-text3">{m.description}</p>}
+                        {m.score != null && <div className="mt-1 h-2 rounded bg-surface"><div className={`h-2 rounded ${m.score < 60 ? 'bg-red-500' : m.score < 80 ? 'bg-amber-500' : 'bg-green-500'}`} style={{ width: `${m.score}%` }} /></div>}
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          <button onClick={() => { sendText(`Explain ${m.name} simply with one example from my PDFs`); goTab('tutor'); }} className="text-[11px] font-semibold text-accent hover:underline">Ask tutor →</button>
+                          <button onClick={() => goTab('quiz')} className="text-[11px] font-semibold text-accent hover:underline">Quiz →</button>
+                          <button onClick={() => { generateFlashcards(m.name); goTab('flashcards'); }} className="text-[11px] font-semibold text-accent hover:underline">Drill cards →</button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                {!mastery.length && <p className="text-sm text-text3">No concepts yet — upload a PDF, then take a quiz.</p>}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Adaptive quiz →</button>
-                <button onClick={() => goTab('flashcards')} className="btn btn-outline !py-1.5 !text-xs">Flashcards →</button>
-              </div>
+                </div>
+              ))}
+              {!concepts.length && <div className="card text-sm text-text3">No concepts yet — upload a PDF and wait for it to reach <b>ready</b>; concepts divide here per document.</div>}
+              {!!concepts.length && (
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Adaptive quiz →</button>
+                  <button onClick={() => goTab('flashcards')} className="btn btn-outline !py-1.5 !text-xs">Flashcards →</button>
+                </div>
+              )}
             </div>
-          )}
+            );
+          })()}
 
           {tab === 'tutor' && (() => {
             const sq = chatSearch.trim().toLowerCase();
@@ -620,11 +808,12 @@ export default function Project() {
             const lastAssistant = [...chat].reverse().find((m) => m.role === 'assistant' && (m.citations || []).length > 0);
             const lastUserMsg = [...chat].reverse().find((m) => m.role === 'user');
             return (
-            <div className="card fade-up flex h-[calc(100vh-76px)] min-h-[500px] !p-0 overflow-hidden">
-              {/* LEFT — CHATS (saved conversations, like screenshot) */}
+            <div className="flex h-[calc(100vh-64px)] min-h-[500px] overflow-hidden bg-bg">
+              {/* LEFT — CHATS (saved conversations, like screenshot; ‹ collapses) */}
+              {!chatsCollapsed ? (
               <div className="flex w-60 shrink-0 flex-col border-r border-border bg-bg2">
                 <div className="border-b border-border p-3">
-                  <p className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-text3">Chats <span>‹</span></p>
+                  <p className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-text3">Chats <button onClick={() => setChatsCollapsed(true)} title="Collapse chats" className="rounded px-1.5 py-0.5 text-sm leading-none hover:bg-surface hover:text-text">‹</button></p>
                   <button onClick={newChat} className="btn btn-primary w-full !py-2 !text-xs">+ New Chat</button>
                   <input value={chatSearch} onChange={(e) => setChatSearch(e.target.value)} placeholder="Search conversations" className="input mt-2 !py-1.5 !text-xs" />
                 </div>
@@ -667,9 +856,13 @@ export default function Project() {
                       </div>
                     </>
                   )}
-                  {!filteredSessions.length && <p className="px-2 py-6 text-center text-xs text-text3">{sessions.length ? 'No match.' : 'No chats yet — start one.'}</p>}
+                  {!filteredSessions.length && !sessionsLoading && <p className="px-2 py-6 text-center text-xs text-text3">{sessions.length ? 'No match.' : 'No chats yet — start one.'}</p>}
+                  {sessionsLoading && <div className="px-1"><ListRows count={4} /></div>}
                 </div>
               </div>
+              ) : (
+              <button onClick={() => setChatsCollapsed(false)} title="Expand chats" className="flex w-8 shrink-0 items-start justify-center border-r border-border bg-bg2 pt-3 text-lg text-text3 transition hover:bg-surface hover:text-text">›</button>
+              )}
 
               {/* CENTER — conversation (like screenshot) */}
               <div className="flex min-w-0 flex-1 flex-col bg-bg">
@@ -717,13 +910,64 @@ export default function Project() {
                       )}
                     </div>
                   ))}
+                  {tutorQuizzes.map((w) => (
+                    <div key={w.key} className="flex gap-2">
+                      <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
+                      <div className="max-w-[85%] flex-1 space-y-2 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-accent">Quiz · {w.concept}</p>
+                        {w.questions.map((x) => (
+                          <div key={x.id} className="rounded-xl border border-border bg-bg2 p-2.5">
+                            <p><span className="badge badge-info mr-1.5">{x.difficulty}</span>{x.stem}</p>
+                            {x.type === 'mcq' ? (
+                              <div className="mt-1.5 grid gap-1">
+                                {x.options.map((o) => (
+                                  <button key={o} onClick={() => !x.result && !x.answering && answerTutorQuiz(w.key, x.id, o)} disabled={!!x.result || x.answering} className={`rounded-lg border px-2 py-1.5 text-left text-[13px] transition ${x.result ? 'cursor-default opacity-80' : 'hover:border-accent hover:text-accent'} ${x.answer === o ? 'border-accent bg-accent/10 font-semibold' : 'border-border'}`}>• {o}</button>
+                                ))}
+                              </div>
+                            ) : !x.result ? (
+                              <form onSubmit={(e) => { e.preventDefault(); answerTutorQuiz(w.key, x.id, x.answer); }} className="mt-1.5 flex gap-1.5">
+                                <input value={x.answer} onChange={(e) => setTutorQuizzes((ws) => ws.map((v) => v.key === w.key ? { ...v, questions: v.questions.map((y) => y.id === x.id ? { ...y, answer: e.target.value } : y) } : v))} placeholder="Type your answer…" className="input flex-1 !py-1.5 !text-xs" />
+                                <button className="btn btn-outline !px-3 !py-1.5 !text-xs" disabled={x.answering}>{x.answering ? '…' : 'Send'}</button>
+                              </form>
+                            ) : null}
+                            {x.answer && x.type !== 'mcq' && !x.result && <p className="mt-1 text-xs text-text3">Grading…</p>}
+                            {x.result && <p className="mt-1.5 rounded-lg bg-bg3 px-2 py-1.5 text-[13px]"><b>Score {x.result.score}</b> — {x.result.feedback?.text}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {tutorCards.map((w) => (
+                    <div key={w.key} className="flex gap-2">
+                      <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
+                      <div className="max-w-[85%] flex-1 space-y-2 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-accent">Flashcards · {w.concept}</p>
+                        {w.cards.map((c) => (
+                          <div key={c._id} className="rounded-xl border border-border bg-bg2 p-2.5">
+                            <button onClick={() => setTutorCards((ws) => ws.map((v) => v.key === w.key ? { ...v, cards: v.cards.map((k) => k._id === c._id ? { ...k, flipped: !k.flipped } : k) } : v))} className="w-full text-left text-[13px] font-semibold">
+                              {c.flipped ? c.back : c.front}
+                            </button>
+                            <p className="mt-0.5 text-[10px] text-text3">{c.flipped ? 'Answer — tap to flip back' : 'Tap to reveal'}</p>
+                            {c.reviewed == null ? (
+                              <div className="mt-1 flex gap-1.5">
+                                <button onClick={() => reviewTutorCard(w.key, c._id, false)} className="btn btn-outline !px-2 !py-1 !text-[11px]">Still learning</button>
+                                <button onClick={() => reviewTutorCard(w.key, c._id, true)} className="btn btn-primary !px-2 !py-1 !text-[11px]">I knew it</button>
+                              </div>
+                            ) : (
+                              <p className="mt-1 text-xs text-text2">{c.reviewed ? 'Marked known ✓' : 'Queued for review'} {c.msg && `— ${c.msg.slice(0, 90)}`}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                   {asking && (
                     <div className="flex gap-2">
-                      <span className="mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
-                      <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm border border-border bg-bg2 px-4 py-3">
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-text3" />
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-text3 [animation-delay:0.15s]" />
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-text3 [animation-delay:0.3s]" />
+                      <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
+                      <div className="w-3/4 max-w-[85%] space-y-2 rounded-2xl rounded-bl-sm border border-border bg-bg2 p-3">
+                        <Skel className="h-3 w-full" />
+                        <Skel className="h-3 w-5/6" />
+                        <Skel className="h-3 w-2/3" />
                       </div>
                     </div>
                   )}
@@ -732,9 +976,9 @@ export default function Project() {
                   )}
                 </div>
                 <div className="shrink-0 border-t border-border bg-bg2 px-4 py-3">
-                  <div className="mb-2 flex flex-wrap gap-1.5">
+                  <div className="mb-2 flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
                     {TUTOR_CHIPS.map((c) => (
-                      <button key={c} onClick={() => tutorChipAction(c)} disabled={asking} className="rounded-full border border-border bg-bg3 px-2.5 py-1 text-xs text-text2 hover:border-accent hover:text-accent disabled:opacity-50">{c}</button>
+                      <button key={c.label} onClick={() => tutorChipAction(c.label)} disabled={asking || startingQuiz || genCards} className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-bg3 px-3 py-1.5 text-xs font-medium text-text2 hover:border-accent hover:text-accent disabled:opacity-50"><c.icon size={13} /> {c.label}</button>
                     ))}
                   </div>
                   <form onSubmit={ask} className="flex gap-2">
@@ -845,7 +1089,17 @@ export default function Project() {
                       <button onClick={() => startQuiz(4)} className="btn btn-primary mx-auto mt-3 !text-xs">+ New Quiz (4 questions)</button>
                     </div>
                   )}
-                  {startingQuiz && <p className="py-10 text-center text-sm text-text3">Generating adaptive questions…</p>}
+                  {startingQuiz && (
+                    <div className="space-y-3">
+                      {[0, 1].map((i) => (
+                        <div key={i} className="rounded-2xl border border-border bg-bg2 p-3.5">
+                          <Skel className="h-3 w-1/3" />
+                          <div className="mt-2"><TextLines lines={2} /></div>
+                          <Skel className="mt-2 h-9 w-full !rounded-xl" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {questions.map((v) => (
                     <div key={v.id} className="space-y-2">
                       <div className="flex gap-2">
@@ -880,11 +1134,20 @@ export default function Project() {
                       )}
                     </div>
                   ))}
+                  {quizNotes.map((note) => (
+                    <div key={note.id} className="flex gap-2">
+                      <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-white"><Bot size={14} /></span>
+                      <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.06] px-3.5 py-2.5 text-sm">
+                        <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-accent">Session summary</p>
+                        <p className="whitespace-pre-wrap">{note.text}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="shrink-0 border-t border-border bg-bg2 px-4 py-3">
-                  <div className="mb-2 flex flex-wrap gap-1.5">
+                  <div className="mb-2 flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
                     {QUIZ_CHIPS.map((c) => (
-                      <button key={c} onClick={() => quizChipAction(c)} disabled={startingQuiz || !!answeringId} className="rounded-full border border-border bg-bg3 px-2.5 py-1 text-xs text-text2 hover:border-accent hover:text-accent disabled:opacity-50">{c}</button>
+                      <button key={c.label} onClick={() => quizChipAction(c.label)} disabled={startingQuiz || !!answeringId} className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-bg3 px-3 py-1.5 text-xs font-medium text-text2 hover:border-accent hover:text-accent disabled:opacity-50"><c.icon size={13} /> {c.label}</button>
                     ))}
                   </div>
                   <form onSubmit={submitActiveQuiz} className="flex gap-2">
@@ -955,6 +1218,16 @@ export default function Project() {
                 </div>
                 {!!reviewMsg && <p className="alert alert-info mt-2 !mb-0">{reviewMsg}</p>}
               </div>
+              {genCards && (
+                <div className="card text-center">
+                  <Skel className="mx-auto h-4 w-48" />
+                  <Skel className="mx-auto mt-3 min-h-[140px] w-full !rounded-2xl" />
+                  <div className="mx-auto mt-3 flex max-w-xs justify-center gap-2">
+                    <Skel className="h-8 flex-1 !rounded-[10px]" />
+                    <Skel className="h-8 flex-1 !rounded-[10px]" />
+                  </div>
+                </div>
+              )}
               {cards.length ? (
                 <div className="card text-center">
                   <p className="text-xs text-text3">Card {cardIdx + 1} of {cards.length} · <span className="badge badge-info ml-1">{cards[cardIdx]?.concept} · {cards[cardIdx]?.difficulty}</span>{cards[cardIdx]?.known === false && <span className="badge badge-high ml-1">needs review</span>}</p>
@@ -972,7 +1245,7 @@ export default function Project() {
                     <button onClick={() => { setCardIdx((i) => (i + 1) % cards.length); setFlipped(false); }} className="btn btn-outline !px-3 !py-1 !text-xs">Next →</button>
                   </div>
                 </div>
-              ) : (
+              ) : !genCards && (
                 <div className="card text-sm text-text3">No flashcards yet — generate your first adaptive deck above.</div>
               )}
               {!!cards.length && (
@@ -1039,6 +1312,71 @@ export default function Project() {
             </div>
           )}
 
+          {tab === 'dashboard' && (
+            <div className="mt-4 space-y-4">
+              <div className="grid-4 fade-up">
+                <div className="card"><p className="label">Avg mastery · this project</p><p className="font-heading text-3xl font-extrabold">{avg}%</p><p className="text-xs text-text3">{mastery.length} concepts tracked</p></div>
+                <div className="card"><p className="label">Quiz attempts · this project</p><p className="font-heading text-3xl font-extrabold">{analytics?.attempts ?? 0}</p><p className="text-xs text-text3">avg score {analytics?.avgScore ?? 0}%</p></div>
+                <div className="card"><p className="label">Flashcards due</p><p className="font-heading text-3xl font-extrabold">{adaptive?.dueCards ?? cards.length}</p><p className="text-xs text-text3">{cards.length} cards in deck</p></div>
+                <div className="card"><p className="label">Tutor exchanges</p><p className="font-heading text-3xl font-extrabold">{chat.length}</p><p className="text-xs text-text3">{sessions.length} saved chats</p></div>
+              </div>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="card fade-up">
+                  <h3 className="font-heading font-bold">Mastery snapshot</h3>
+                  {mastery.length ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={mastery.slice().sort((a, b) => a.score - b.score).slice(0, 8).map((m) => ({ name: m.concept.slice(0, 12), score: m.score }))}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                        <XAxis dataKey="name" fontSize={11} interval={0} angle={-15} dy={8} height={50} />
+                        <YAxis domain={[0, 100]} fontSize={11} />
+                        <Tooltip />
+                        <Bar dataKey="score" fill="var(--color-accent)" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-sm text-text3">Take a quiz to see mastery bars.</p>}
+                </div>
+                <div className="card fade-up">
+                  <h3 className="font-heading font-bold">Needs attention <span className="text-xs font-normal text-text3">weakest in this project</span></h3>
+                  <div className="mt-2 space-y-2">
+                    {mastery.slice().sort((a, b) => a.score - b.score).slice(0, 3).map((m) => (
+                      <div key={m.concept} className="rounded-xl border border-border bg-bg3 px-3 py-2">
+                        <div className="flex justify-between text-sm"><span className="font-semibold">{m.concept}</span><span>{m.score}% · {m.mistakes}✕</span></div>
+                        <div className="mt-1 h-1.5 rounded bg-surface"><div className="h-1.5 rounded bg-red-500" style={{ width: `${m.score}%` }} /></div>
+                        <div className="mt-1.5 flex gap-1.5">
+                          <button onClick={() => goTab('quiz')} className="text-[11px] font-semibold text-accent hover:underline">Quiz →</button>
+                          <button onClick={() => { generateFlashcards(m.concept); goTab('flashcards'); }} className="text-[11px] font-semibold text-accent hover:underline">Drill cards →</button>
+                          <button onClick={() => { goTab('tutor'); setTimeout(() => sendText(`Explain ${m.concept} simply with one example from my PDFs`), 300); }} className="text-[11px] font-semibold text-accent hover:underline">Ask tutor →</button>
+                        </div>
+                      </div>
+                    ))}
+                    {!mastery.length && <p className="text-sm text-text3">Upload material and take a quiz — weak spots appear here.</p>}
+                  </div>
+                </div>
+              </div>
+              <div className="card">
+                <h3 className="font-heading font-bold">Recommended next step <span className="badge badge-info ml-1">Adaptive</span></h3>
+                <p className="alert alert-success mt-2">{adaptive?.current?.text || rec?.text || 'Upload material, then ask the Tutor.'}</p>
+                {!!adaptive?.actions?.length && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {adaptive.actions.map((a, i) => (
+                      <button key={i} onClick={() => goTab(a.tab)} title={a.detail || a.label} className="btn btn-outline !py-1.5 !text-xs">{a.label} →</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="card">
+                <h3 className="font-heading font-bold">Recent activity · this project</h3>
+                <div className="mt-2 space-y-1 text-xs text-text2">
+                  {(analytics?.events || []).slice(0, 6).map((e, i) => (
+                    <p key={i} className="rounded-lg bg-bg3 px-2 py-1.5"><b>{e.type}</b> · {new Date(e.at || e.createdAt).toLocaleString()}</p>
+                  ))}
+                  {!(analytics?.events || []).length && <p className="text-sm text-text3">Nothing yet in this project.</p>}
+                </div>
+                <button onClick={() => goTab('analytics')} className="btn btn-outline mt-2 !py-1.5 !text-xs">Full project analytics →</button>
+              </div>
+            </div>
+          )}
+
           {tab === 'analytics' && (
             <div className="mt-4 space-y-4">
               <div className="grid-4 fade-up">
@@ -1089,8 +1427,8 @@ export default function Project() {
             </div>
           )}
 
-          {/* Step checklist — hidden on full-height panes (tutor/quiz) so they use all space */}
-          {tab !== 'tutor' && tab !== 'quiz' && (
+          {/* Step checklist — hidden on the full-bleed tutor pane so it uses all space */}
+          {tab !== 'tutor' && (
           <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-text3">
             {STEPS.map((s) => (
               <button key={s.id} onClick={() => goTab(s.id)} className="inline-flex items-center gap-1 rounded-full border border-border bg-bg2 px-2.5 py-1 hover:border-accent hover:text-accent">

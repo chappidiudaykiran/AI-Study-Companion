@@ -4,7 +4,7 @@ import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
   Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen, LayoutGrid, Plus, LogOut,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
-  ListChecks, Layers, TrendingUp, BarChart3, LayoutDashboard,
+  ListChecks, Layers, TrendingUp, BarChart3, LayoutDashboard, BookOpen,
 } from 'lucide-react';
 import api from './api/client.js';
 import Home from './pages/Home.jsx';
@@ -34,12 +34,12 @@ function useDark() {
 export { useCrumbs };
 
 const TOOLS = [
-  { tab: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { tab: 'overview', label: 'Overview', icon: LayoutGrid },
   { tab: 'materials', label: 'Materials', icon: UploadCloud },
   { tab: 'tutor', label: 'AI Tutor', icon: MessagesSquare, badge: 'AI' },
+  { tab: 'concepts', label: 'Concepts', icon: BookOpen },
   { tab: 'quiz', label: 'Quiz', icon: ListChecks },
-  { tab: 'flashcards', label: 'Flashcards', icon: Layers, badge: 'Adaptive' },
-  { tab: 'growth', label: 'Growth', icon: TrendingUp },
+  { tab: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { tab: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
 
@@ -182,13 +182,6 @@ function Sidebar({ collapsed, setCollapsed }) {
                 </button>
               );
             })}
-            {!collapsed && <p className="label !mb-1 px-3 pt-2">Insights</p>}
-            <NavLink to="/dashboard" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
-              <LayoutDashboard size={17} className="shrink-0" /> {!collapsed && 'Dashboard'}
-            </NavLink>
-            <NavLink to="/analytics" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
-              <BarChart3 size={17} className="shrink-0" /> {!collapsed && 'Global Analytics'}
-            </NavLink>
           </>
         ) : (
           <>
@@ -252,22 +245,71 @@ function Sidebar({ collapsed, setCollapsed }) {
 
 function AdminBar() {
   const nav = useNavigate();
+  const location = useLocation();
   const [dark, toggle] = useDark();
-  const [atTop, setAtTop] = useState(true);
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const initial = (((user?.name || user?.email)) || 'U')[0].toUpperCase();
+
   useEffect(() => {
-    function onScroll() {
-      setAtTop(window.scrollY < 40);
+    setOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    function onDoc(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
     }
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
   }, []);
-  if (!atTop) return null;
+
+  function signOut() {
+    localStorage.clear();
+    nav('/login');
+  }
   return (
-    <div className="fixed right-16 top-[72px] z-[100] flex items-center gap-4">
-      <button onClick={toggle} title={dark ? 'Switch to light mode' : 'Switch to dark mode'} className="p-1 transition text-text2 hover:text-text">{dark ? <Sun size={20} /> : <Moon size={20} />}</button>
-      <button onClick={() => { localStorage.clear(); nav('/login'); }} title="Logout" className="flex items-center gap-1.5 p-1 text-sm font-medium transition text-text2 hover:text-red-600"><LogOut size={19} /> Logout</button>
-    </div>
+    <header className="navbar">
+      <div className="container flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Link to="/" className="flex min-w-0 items-center gap-1.5">
+            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#4f46e5] text-white">
+              <svg width="13" height="13" viewBox="0 0 60 60" fill="none" stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.6" /></svg>
+            </span>
+            <span className="block whitespace-nowrap text-[14px] font-bold leading-tight">AI Study Companion</span>
+          </Link>
+          <span className="badge badge-low ml-1 hidden sm:inline">Admin</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button onClick={toggle} className="btn-ghost btn !px-2" title={dark ? 'Switch to light mode' : 'Switch to dark mode'}>{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
+          {user ? (
+            <span className="relative" ref={menuRef} title={user.email}>
+              <button onClick={() => setOpen(!open)} className="flex items-center gap-2 rounded-full border border-border bg-bg2 py-1 pl-1 pr-3 transition hover:border-border2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{initial}</span>
+                <span className="hidden max-w-[160px] truncate text-sm font-medium md:inline">{user.name || user.email}</span>
+              </button>
+              {open && (
+                <div className="absolute right-0 top-11 z-[200] w-64 overflow-hidden rounded-2xl border border-border bg-bg2 shadow-xl">
+                  <div className="flex items-center gap-3 border-b border-border p-4">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-white">{initial}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">{user.name || 'Account'}</span>
+                      <span className="block truncate text-xs text-text3">{user.email}</span>
+                    </span>
+                  </div>
+                  <div className="p-2">
+                    <button onClick={() => { setOpen(false); nav('/profile'); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-surface">View profile & settings</button>
+                    <button onClick={signOut} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm transition hover:bg-surface hover:text-red-600"><LogOut size={15} className="mr-2" /> Sign out</button>
+                  </div>
+                </div>
+              )}
+            </span>
+          ) : (
+            <Link to="/login" className="btn btn-primary !px-3 !py-1.5">Login</Link>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -355,13 +397,14 @@ export default function App() {
   const [crumbs, setCrumbs] = useState([]);
   const [collapsed, setCollapsed] = useState(false);
   const adminView = !isAuth && !!JSON.parse(localStorage.getItem('user') || 'null')?.isAdmin;
+  const isTutorTab = location.pathname.startsWith('/project/') && new URLSearchParams(location.search).get('tab') === 'tutor';
   return (
     <CrumbCtx.Provider value={{ crumbs, setCrumbs }}>
       <div className="min-h-screen bg-bg">
         {!isAuth && !adminView && <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />}
         {!isAuth && (adminView ? <AdminBar /> : <Topbar collapsed={collapsed} />)}
         <div className={isAuth || adminView ? '' : collapsed ? 'lg:pl-16' : 'lg:pl-64'}>
-          <main className={isAuth || adminView ? '' : 'page'}>
+          <main className={isAuth ? '' : 'page'}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -374,7 +417,7 @@ export default function App() {
               <Route path="/analytics" element={guard(<GlobalAnalytics />)} />
             </Routes>
           </main>
-          {!isAuth && (
+          {!isAuth && !isTutorTab && (
           <footer className="container pb-10 text-xs text-text3">
             Space → Project → Material → Tutor → Quiz → Mastery → Recommendation. Grounded in your PDFs.
           </footer>

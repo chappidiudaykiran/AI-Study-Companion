@@ -44,4 +44,18 @@ const recommendSchema = z.object({
   reason: z.string().max(300).default(''),
 });
 
-module.exports = { tutorSchema, mcqSchema, openQSchema, gradeSchema, conceptsSchema, recommendSchema };
+const flashcardsSchema = z.object({
+  cards: z
+    .array(
+      z.object({
+        front: z.string().min(3).max(500),
+        back: z.string().min(1).max(1000),
+        concept: z.string().max(120).default('General'),
+        difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
+      })
+    )
+    .min(1)
+    .max(12),
+});
+
+module.exports = { tutorSchema, mcqSchema, openQSchema, gradeSchema, conceptsSchema, recommendSchema, flashcardsSchema };

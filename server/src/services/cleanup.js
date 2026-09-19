@@ -12,6 +12,8 @@ const LearningContext = require('../models/LearningContext');
 const Event = require('../models/Event');
 const AiLog = require('../models/AiLog');
 const Job = require('../models/Job');
+const Flashcard = require('../models/Flashcard');
+const FlashcardReview = require('../models/FlashcardReview');
 
 async function deleteMaterialCascade(materialId) {
   const mat = await Material.findById(materialId);
@@ -45,6 +47,8 @@ async function deleteProjectCascade(projectId) {
   await Event.deleteMany({ project: projectId });
   await AiLog.deleteMany({ project: projectId });
   await Job.deleteMany({ project: projectId });
+  await Flashcard.deleteMany({ project: projectId });
+  await FlashcardReview.deleteMany({ project: projectId });
   await Project.deleteOne({ _id: projectId });
 }
 

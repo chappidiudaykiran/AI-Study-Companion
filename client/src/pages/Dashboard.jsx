@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { useCrumbs } from '../crumbs.js';
+import { PageSkeleton } from '../components/Shimmer.jsx';
 import api from '../api/client.js';
 
 export default function Dashboard() {
@@ -13,7 +14,7 @@ export default function Dashboard() {
     api.get('/api/analytics/global').then((r) => setG(r.data)).catch(() => {});
   }, []);
 
-  if (!g) return <div className="container"><p className="text-sm text-text2">Loading dashboard…</p></div>;
+  if (!g) return <div className="theme-dashboard min-h-screen"><PageSkeleton stats={4} cards={2} /></div>;
 
   const steps = [
     { label: 'Spaces', value: g.spaces ?? 0, done: (g.spaces ?? 0) > 0 },
@@ -29,7 +30,7 @@ export default function Dashboard() {
 
   return (
     <div className="theme-dashboard min-h-screen pb-16">
-      <div className="container">
+      <div className="container pt-6">
         <div className="page-header fade-up">
           <h1 className="page-title">Learning <span className="hero-gradient-text">dashboard</span></h1>
           <p className="page-subtitle">Your loop progress, where to continue, and what needs attention.</p>

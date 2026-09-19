@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, ArrowRight } from 'lucide-react';
 import StudyCard from '../components/StudyCard.jsx';
+import { CardList } from '../components/Shimmer.jsx';
 import { useCrumbs } from '../crumbs.js';
 import api from '../api/client.js';
 
@@ -21,8 +22,10 @@ export default function Home() {
   const nav = useNavigate();
   const isAdmin = currentIsAdmin();
   const [spaces, setSpaces] = useState([]);
+  const [spacesLoading, setSpacesLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const [projects, setProjects] = useState([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
   const [spaceDetail, setSpaceDetail] = useState(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [cerr, setCerr] = useState('');
@@ -37,23 +40,31 @@ export default function Home() {
   const { setCrumbs } = useCrumbs();
 
   async function loadSpaces(selectFirst = false) {
-    const { data } = await api.get('/api/spaces');
-    const list = data.spaces || [];
-    setSpaces(list);
-    if (selectFirst && list.length && !selectedId) {
-      selectSpace(list[0]._id, list);
+    setSpacesLoading(true);
+    try {
+      const { data } = await api.get('/api/spaces');
+      const list = data.spaces || [];
+      setSpaces(list);
+      if (selectFirst && list.length && !selectedId) {
+        selectSpace(list[0]._id, list);
+      }
+    } finally {
+      setSpacesLoading(false);
     }
   }
 
   async function selectSpace(id, list = spaces) {
     setSelectedId(id);
     setSearchParams(id ? { space: id } : {});
+    setProjectsLoading(true);
     try {
       const { data } = await api.get(`/api/spaces/${id}`);
       setSpaceDetail(data.space || list.find((s) => s._id === id) || null);
       setProjects(data.projects || []);
     } catch {
       setProjects([]);
+    } finally {
+      setProjectsLoading(false);
     }
   }
 
@@ -207,7 +218,8 @@ export default function Home() {
                 />
               ))}
             </div>
-            {!spaces.length && <div className="card mt-4 text-sm text-text2">No spaces yet — create one above to begin.</div>}
+            {spacesLoading && <div className="mt-6"><CardList count={3} /></div>}
+            {!spaces.length && !spacesLoading && <div className="card mt-4 text-sm text-text2">No spaces yet — create one above to begin.</div>}
           </div>
         ) : (
           <div className="pt-6">
@@ -254,7 +266,8 @@ export default function Home() {
                   confirmText=""
                 />
               ))}
-              {!projects.length && <div className="card text-sm text-text2">No projects yet — click “New Project” to begin.</div>}
+              {!projects.length && !projectsLoading && <div className="card text-sm text-text2">No projects yet — click “New Project” to begin.</div>}
+              {projectsLoading && <div className="md:col-span-2"><CardList count={2} /></div>}
             </div>
           </div>
         )}

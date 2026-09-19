@@ -94,7 +94,7 @@ export default function Profile() {
 
   return (
     <div className="theme-dashboard min-h-screen pb-16">
-      <div className="container max-w-3xl">
+      <div className="container max-w-3xl pt-6">
         <Link to="/" className="text-sm text-text2 hover:underline">← Home</Link>
         <div className="page-header fade-up">
           <h1 className="page-title">Your <span className="hero-gradient-text">profile</span></h1>

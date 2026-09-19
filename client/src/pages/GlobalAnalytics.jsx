@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
 import { useCrumbs } from '../crumbs.js';
+import { PageSkeleton } from '../components/Shimmer.jsx';
 import api from '../api/client.js';
 
 export default function GlobalAnalytics() {
@@ -27,11 +28,11 @@ export default function GlobalAnalytics() {
     [g]
   );
 
-  if (!g) return <div className="container"><p className="text-sm text-text2">Loading analytics…</p></div>;
+  if (!g) return <div className="theme-dashboard min-h-screen"><PageSkeleton stats={4} cards={0} /></div>;
 
   return (
     <div className="theme-dashboard min-h-screen pb-16">
-      <div className="container">
+      <div className="container pt-6">
         <div className="page-header fade-up">
           <h1 className="page-title">Global <span className="hero-gradient-text">analytics</span></h1>
           <p className="page-subtitle">Aggregated learning activity across all spaces and projects.</p>
