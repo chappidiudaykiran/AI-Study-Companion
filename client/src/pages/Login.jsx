@@ -116,7 +116,6 @@ export default function Login() {
             <p className="mt-2 text-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">Your projects, progress, and learning context are ready when you are.</p>
           </div>
           <ul className="relative space-y-4">
-            <span aria-hidden className="absolute bottom-2 left-[18px] top-2 w-px bg-white/25" />
             {FEATURES.map((f) => (
               <li key={f.title} className="relative flex items-center gap-3">
                 <span className="z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/15"><f.icon size={17} /></span>
