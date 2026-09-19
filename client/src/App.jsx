@@ -4,7 +4,7 @@ import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
   Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen, LayoutGrid, Plus, LogOut,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
-  ListChecks, Layers, TrendingUp, BarChart3, LayoutDashboard, BookOpen, PenLine,
+  ListChecks, Layers, TrendingUp, BarChart3, LayoutDashboard, BookOpen, PenLine, Sparkles,
 } from 'lucide-react';
 import api from './api/client.js';
 import Home from './pages/Home.jsx';
@@ -40,6 +40,7 @@ const TOOLS = [
   { tab: 'concepts', label: 'Concepts', icon: BookOpen },
   { tab: 'quiz', label: 'Quiz', icon: ListChecks },
   { tab: 'practice', label: 'Practice', icon: PenLine },
+  { tab: 'recommendations', label: 'Recommendations', icon: Sparkles },
   { tab: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { tab: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];

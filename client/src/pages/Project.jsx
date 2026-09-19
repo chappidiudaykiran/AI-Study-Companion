@@ -28,6 +28,7 @@ const SIDEBAR_NAV = [
   { id: 'concepts', label: 'Concepts', icon: BookOpen },
   { id: 'quiz', label: 'Quiz', icon: Target },
   { id: 'practice', label: 'Practice', icon: PenLine },
+  { id: 'recommendations', label: 'Recommendations', icon: Sparkles },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
@@ -39,6 +40,7 @@ const TAB_LABEL = {
   concepts: 'Concepts',
   quiz: 'Quiz',
   practice: 'Practice',
+  recommendations: 'Recommendations',
   assignments: 'Assignments',
   growth: 'Growth',
   dashboard: 'Dashboard',
@@ -266,6 +268,7 @@ export default function Project() {
     concepts: mastery.length > 0,
     quiz: questions.length > 0 || (analytics?.attempts || 0) > 0,
     practice: pQuestions.length > 0,
+    recommendations: !!(adaptive?.current || rec),
     assignments: (analytics?.recentAttempts || []).length > 0,
     growth: growth.length > 0,
     dashboard: (analytics?.attempts || 0) > 0,
@@ -817,7 +820,7 @@ export default function Project() {
               { label: 'Practice', tab: 'practice', sub: practiceN ? `${practiceN} paper${practiceN > 1 ? 's' : ''}` : 'Exam mode', done: practiceN > 0 },
               { label: 'Mastery', tab: 'dashboard', sub: mastery.length ? `${avg}% avg` : 'No scores yet', done: mastery.length > 0 },
               { label: 'Growth', tab: 'growth', sub: growth.length ? 'Tracking' : 'No history', done: growth.length > 0 },
-              { label: 'Next step', tab: adaptive?.actions?.[0]?.tab || 'quiz', sub: nextText ? 'Ready for you' : 'Do any task', done: !!nextText },
+              { label: 'Next step', tab: 'recommendations', sub: nextText ? 'Ready for you' : 'Do any task', done: !!nextText },
             ];
             const doneCount = steps.filter((s) => s.done).length;
             const curIdx = steps.findIndex((s) => !s.done);
@@ -1742,6 +1745,90 @@ export default function Project() {
               </div>
             </div>
           )}
+
+          {tab === 'recommendations' && (() => {
+            const weak = (adaptive?.weak || []).slice(0, 5);
+            const slipping = growth.filter((g) => g.status === 'needs-attention' || (g.delta ?? 0) < 0).slice(0, 3);
+            const nextText = adaptive?.current?.text || rec?.text;
+            return (
+            <div className="mt-4 space-y-4">
+              <div>
+                <h2 className="font-heading flex items-center gap-2 text-xl font-extrabold"><Sparkles size={20} className="text-accent" /> Recommendations</h2>
+                <p className="text-sm text-text2">Personalized next steps for <b>this project only</b> — rebuilt from your latest quiz, practice and flashcard activity.</p>
+              </div>
+              <div className="card fade-up !border-accent/30 !bg-accent/[0.05]">
+                <p className="text-xs font-bold uppercase tracking-widest text-accent">Adaptive next step</p>
+                <p className="mt-1 text-[15px] font-medium">{nextText || 'Upload material and take your first quiz to generate personalized next steps.'}</p>
+                {!!adaptive?.actions?.length && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {adaptive.actions.map((a, i) => (
+                      <button key={i} onClick={() => goTab(a.tab)} title={a.detail || a.label} className="btn btn-primary !py-1.5 !text-xs">{a.label} →</button>
+                    ))}
+                  </div>
+                )}
+                {!adaptive?.actions?.length && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button onClick={() => goTab('materials')} className="btn btn-outline !py-1.5 !text-xs">Upload a PDF</button>
+                    <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Take first quiz</button>
+                  </div>
+                )}
+              </div>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="card fade-up">
+                  <h3 className="font-heading font-bold">Focus concepts <span className="text-xs font-normal text-text3">weakest first</span></h3>
+                  {weak.length ? (
+                    <div className="mt-2 space-y-2">
+                      {weak.map((w) => (
+                        <div key={w.concept} className="rounded-xl border border-border bg-bg3 px-3 py-2">
+                          <div className="flex justify-between text-sm"><span className="font-semibold">{w.concept}</span><span>{w.score}%</span></div>
+                          <div className="mt-1 h-1.5 rounded bg-surface"><div className={`h-1.5 rounded ${w.score < 60 ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${w.score}%` }} /></div>
+                          <div className="mt-1.5 flex gap-2.5">
+                            <button onClick={() => { startQuiz(4, w.concept); goTab('quiz'); }} className="text-[11px] font-bold text-accent hover:underline">Quiz →</button>
+                            <button onClick={() => { goTab('tutor'); setTimeout(() => sendText(`Explain ${w.concept} simply with one example from my PDFs`), 300); }} className="text-[11px] font-bold text-accent hover:underline">Ask tutor →</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="mt-2 text-sm text-text3">No weak spots flagged yet — take a quiz and they appear here.</p>}
+                  {!!adaptive?.dueCards && <p className="mt-2 text-xs text-text2">🃏 {adaptive.dueCards} flashcards due — drill them from the Quiz tab.</p>}
+                </div>
+                <div className="space-y-4">
+                  {!!slipping.length && (
+                    <div className="card fade-up">
+                      <h3 className="font-heading font-bold">Recover slipping <span className="text-xs font-normal text-text3">scores dropping</span></h3>
+                      <div className="mt-2 space-y-1.5 text-sm">
+                        {slipping.map((g) => (
+                          <p key={g.concept} className="flex items-center justify-between gap-2 rounded-lg bg-bg3 px-2.5 py-1.5">
+                            <span className="truncate font-semibold">{g.concept} <span className="badge badge-high ml-1">Δ{g.delta}</span></span>
+                            <button onClick={() => { startQuiz(4, g.concept); goTab('quiz'); }} className="shrink-0 text-[11px] font-bold text-accent hover:underline">Recover →</button>
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {!!adaptive?.tutorPrompts?.length && (
+                    <div className="card fade-up">
+                      <h3 className="font-heading font-bold">Ask the tutor <span className="text-xs font-normal text-text3">one tap per weak spot</span></h3>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {adaptive.tutorPrompts.map((t) => (
+                          <button key={t.concept} onClick={() => { goTab('tutor'); setTimeout(() => sendText(t.prompt), 300); }} title={t.prompt} className="rounded-full border border-border bg-bg3 px-2.5 py-1 text-xs hover:border-accent hover:text-accent">Ask: {t.concept}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="card fade-up">
+                    <h3 className="font-heading font-bold">Keep momentum</h3>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button onClick={refreshStats} className="btn btn-outline !py-1.5 !text-xs">Refresh stats</button>
+                      <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Adaptive quiz →</button>
+                      <button onClick={() => goTab('practice')} className="btn btn-outline !py-1.5 !text-xs">Practice paper →</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            );
+          })()}
 
           {tab === 'dashboard' && (
             <div className="mt-4 space-y-4">
