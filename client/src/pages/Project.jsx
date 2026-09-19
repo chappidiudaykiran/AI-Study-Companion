@@ -771,32 +771,32 @@ export default function Project() {
           {tab === 'overview' && (() => {
             const C = 2 * Math.PI * 30;
             return (
-            <div className="fade-up relative overflow-hidden rounded-3xl border border-sky-200/70 bg-gradient-to-br from-sky-100 via-sky-200 to-blue-300 p-6 text-slate-900 dark:border-white/10 dark:from-[#0c2a4a] dark:via-[#123c66] dark:to-[#0c4a6e] dark:text-white">
-              <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-sky-300/50 blur-2xl dark:bg-white/10" />
-              <div className="pointer-events-none absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-blue-300/50 blur-2xl dark:bg-black/30" />
+            <div className="fade-up relative overflow-hidden rounded-3xl border border-sky-400/40 bg-gradient-to-br from-sky-400 via-sky-600 to-blue-700 p-6 text-white dark:border-white/10 dark:from-[#0c2a4a] dark:via-[#123c66] dark:to-[#0c4a6e]">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/15 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-blue-900/40 blur-2xl" />
               <div className="relative flex flex-wrap items-center gap-5">
                 <div className="relative h-[84px] w-[84px] shrink-0" title={`Average mastery ${avg}%`}>
                   <svg width="84" height="84" className="-rotate-90">
-                    <circle cx="42" cy="42" r="30" fill="none" stroke="rgba(37,99,235,0.15)" strokeWidth="9" />
-                    <circle cx="42" cy="42" r="30" fill="none" stroke="var(--color-accent)" strokeWidth="9" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C - (C * (avg || 0)) / 100} />
+                    <circle cx="42" cy="42" r="30" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="9" />
+                    <circle cx="42" cy="42" r="30" fill="none" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C - (C * (avg || 0)) / 100} />
                   </svg>
                   <span className="absolute inset-0 flex items-center justify-center font-heading text-lg font-extrabold">{avg}%</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-white/70">Project overview · avg mastery</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/75">Project overview · avg mastery</p>
                   <h1 className="font-heading truncate text-2xl font-extrabold">{project?.name || 'Project'}</h1>
-                  {!!project?.goal && <p className="truncate text-sm text-slate-600 dark:text-white/85"><b>Goal:</b> {project.goal}</p>}
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-white/85">
-                    <span><b className="font-extrabold text-slate-900 dark:text-white">{materials.length}</b> materials</span>
-                    <span><b className="font-extrabold text-slate-900 dark:text-white">{mastery.length}</b> concepts</span>
-                    <span><b className="font-extrabold text-slate-900 dark:text-white">{analytics?.attempts ?? 0}</b> attempts</span>
-                    <span><b className="font-extrabold text-slate-900 dark:text-white">{analytics?.avgScore ?? 0}%</b> avg score</span>
-                    <span><b className="font-extrabold text-slate-900 dark:text-white">{sessions.length}</b> tutor chats</span>
+                  {!!project?.goal && <p className="truncate text-sm text-white/85"><b>Goal:</b> {project.goal}</p>}
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/85">
+                    <span><b className="font-extrabold text-white">{materials.length}</b> materials</span>
+                    <span><b className="font-extrabold text-white">{mastery.length}</b> concepts</span>
+                    <span><b className="font-extrabold text-white">{analytics?.attempts ?? 0}</b> attempts</span>
+                    <span><b className="font-extrabold text-white">{analytics?.avgScore ?? 0}%</b> avg score</span>
+                    <span><b className="font-extrabold text-white">{sessions.length}</b> tutor chats</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => goTab('tutor')} className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-sm font-bold text-accent shadow-sm transition hover:bg-white/90"><MessagesSquare size={15} /> Ask Tutor</button>
-                  <button onClick={() => goTab('quiz')} className="inline-flex items-center gap-1.5 rounded-xl border border-accent/40 px-3.5 py-2 text-sm font-bold text-accent transition hover:bg-accent/10 dark:border-white/50 dark:text-white dark:hover:bg-white/10"><ListChecks size={15} /> Take Quiz</button>
+                  <button onClick={() => goTab('tutor')} className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-sm font-bold text-sky-700 transition hover:bg-white/90"><MessagesSquare size={15} /> Ask Tutor</button>
+                  <button onClick={() => goTab('quiz')} className="inline-flex items-center gap-1.5 rounded-xl border border-white/50 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-white/10"><ListChecks size={15} /> Take Quiz</button>
                 </div>
               </div>
             </div>
