@@ -186,7 +186,7 @@ export default function Home() {
               {cerr && <p className="alert alert-error mt-2 !mb-0">{cerr}</p>}
             </div>
             )}
-            <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {spaces.map((s, i) => (
                 <StudyCard
                   key={s._id}
@@ -235,7 +235,7 @@ export default function Home() {
             )}
             {showPform && perr && <p className="alert alert-error mt-2">{perr}</p>}
 
-            <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
               {projects.map((p, i) => (
                 <StudyCard
                   key={p._id}
