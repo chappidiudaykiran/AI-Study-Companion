@@ -195,18 +195,18 @@ export default function Admin() {
   return (
     <div className="theme-dashboard min-h-screen pb-16">
       <div className="container max-w-6xl pt-6">
-        {/* HERO — site-themed System Overview (accent blue → violet) */}
-        <div className="fade-up relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent via-accent2 to-accent p-6 text-white">
+        {/* HERO — card-style System Overview */}
+        <div className="card fade-up !p-6">
           <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white/60"><ShieldCheck size={13} /> Admin · Mission Control</p>
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-text3"><ShieldCheck size={13} /> Admin · Mission Control</p>
               <h1 className="font-heading mt-1 text-2xl font-extrabold">System Overview</h1>
             </div>
             <div className="flex items-center gap-2">
               {(o?.failures24h ?? 0) > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1.5 text-xs font-bold text-amber-200"><AlertTriangle size={13} /> {o.failures24h} failures · 24h</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300"><AlertTriangle size={13} /> {o.failures24h} failures · 24h</span>
               )}
-              <button onClick={loadAll} disabled={loading} className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/20 disabled:opacity-60">
+              <button onClick={loadAll} disabled={loading} className="btn btn-outline !py-1.5 !text-xs">
                 <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> {loading ? 'Syncing…' : 'Refresh'}
               </button>
             </div>
@@ -220,8 +220,8 @@ export default function Admin() {
             ].map((k) => (
               <div key={k.label}>
                 <p className="font-heading text-3xl font-extrabold">{k.value}</p>
-                <p className="mt-0.5 text-[11px] font-bold uppercase tracking-widest text-white/55">{k.label}</p>
-                {!!k.sub && <p className="text-[11px] text-white/45">{k.sub}</p>}
+                <p className="mt-0.5 text-[11px] font-bold uppercase tracking-widest text-text3">{k.label}</p>
+                {!!k.sub && <p className="text-[11px] text-text3">{k.sub}</p>}
               </div>
             ))}
           </div>
