@@ -103,7 +103,7 @@ export default function Login() {
         {/* Left: photo-style panel. Drop a real photo at client/public/login-bg.jpg to use it. */}
         <div
           className="relative hidden flex-col justify-center gap-5 overflow-hidden p-8 text-white md:flex"
-          style={{ backgroundImage: "linear-gradient(160deg, rgba(30,27,143,0.55), rgba(20,20,60,0.68)), url('/login-bg.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+          style={{ backgroundImage: "linear-gradient(160deg, rgba(30,27,143,0.28), rgba(20,20,60,0.45)), url('/login-bg.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
         >
           <div className="flex items-center gap-2.5">
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200/40 bg-blue-400/30">
