@@ -39,7 +39,7 @@ export default function StudyCard({
       onClick={onOpen}
     >
       <div className={`h-1.5 bg-gradient-to-r ${theme.bar}`} />
-      <div className={compact ? 'p-4' : 'p-5'}>
+      <div className={compact ? 'p-5' : 'p-6'}>
         <div className="flex items-center gap-3">
           <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.tile} text-base font-bold text-white`}>
             {(title || 'S')[0].toUpperCase()}
