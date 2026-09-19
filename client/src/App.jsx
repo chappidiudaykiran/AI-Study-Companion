@@ -164,9 +164,11 @@ function Sidebar({ collapsed, setCollapsed }) {
             </button>
             {!collapsed && <p className="label !mb-1 px-3 pt-2">Project</p>}
             {!collapsed && (
-              <div className="rounded-xl border border-border bg-bg3 p-3">
-                <p className="flex items-center gap-2 font-semibold"><span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent">{(lastProject.name || 'P')[0]}</span><span className="truncate">{lastProject.name}</span></p>
-                <p className="mt-0.5 truncate text-xs text-text3">{lastProject.spaceName || ''}</p>
+              <div className="ml-4 border-l border-border pl-2">
+                <button onClick={() => nav(`/project/${pid}?tab=overview`)} title={lastProject.name} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-surface">
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/15 text-[11px] font-bold text-accent">{(lastProject.name || 'P')[0]}</span>
+                  <span className="min-w-0"><span className="block truncate font-semibold leading-tight">{lastProject.name}</span><span className="block truncate text-[11px] leading-tight text-text3">{lastProject.spaceName || ''}</span></span>
+                </button>
               </div>
             )}
             {TOOLS.map((t) => {
@@ -255,11 +257,20 @@ function Sidebar({ collapsed, setCollapsed }) {
 function AdminBar() {
   const nav = useNavigate();
   const [dark, toggle] = useDark();
+  const [atTop, setAtTop] = useState(true);
+  useEffect(() => {
+    function onScroll() {
+      setAtTop(window.scrollY < 40);
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  if (!atTop) return null;
   return (
-    <div className="fixed right-4 top-4 z-[100] flex items-center gap-3 rounded-full border border-border bg-bg2 p-1.5 shadow-lg">
-      <button onClick={toggle} title={dark ? 'Switch to light mode' : 'Switch to dark mode'} className="rounded-full p-2 transition text-text2 hover:bg-surface hover:text-text">{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
-      <span aria-hidden className="h-5 w-px bg-border" />
-      <button onClick={() => { localStorage.clear(); nav('/login'); }} title="Logout" className="rounded-full p-2 transition text-text2 hover:bg-red-50 hover:text-red-600"><LogOut size={18} /></button>
+    <div className="fixed right-16 top-[72px] z-[100] flex items-center gap-4">
+      <button onClick={toggle} title={dark ? 'Switch to light mode' : 'Switch to dark mode'} className="p-1 transition text-text2 hover:text-text">{dark ? <Sun size={20} /> : <Moon size={20} />}</button>
+      <button onClick={() => { localStorage.clear(); nav('/login'); }} title="Logout" className="flex items-center gap-1.5 p-1 text-sm font-medium transition text-text2 hover:text-red-600"><LogOut size={19} /> Logout</button>
     </div>
   );
 }
