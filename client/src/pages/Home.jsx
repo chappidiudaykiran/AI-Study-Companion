@@ -197,6 +197,7 @@ export default function Home() {
                   title={s.name}
                   tag={`${s.projects ?? 0} Projects`}
                   description={s.description || 'No description'}
+                  meta={`${s.projects ?? 0} project inside`}
                   openLabel="Open Space"
                   onOpen={() => selectSpace(s._id)}
                   canDelete={!isAdmin}
