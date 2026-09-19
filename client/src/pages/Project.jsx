@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { UploadCloud, MessagesSquare, ListChecks, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2, Layers, Home as HomeIcon, LayoutDashboard, PenLine } from 'lucide-react';
+import { UploadCloud, MessagesSquare, ListChecks, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, Compass, BookOpen, Folder, Target, FileText, Trash2, Layers, Home as HomeIcon, LayoutDashboard, PenLine } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, Cell } from 'recharts';
 import MathText from '../components/MathText.jsx';
 import { Skel, TextLines, ChatThread, ListRows, PageSkeleton } from '../components/Shimmer.jsx';
@@ -28,7 +28,7 @@ const SIDEBAR_NAV = [
   { id: 'concepts', label: 'Concepts', icon: BookOpen },
   { id: 'quiz', label: 'Quiz', icon: Target },
   { id: 'practice', label: 'Practice', icon: PenLine },
-  { id: 'recommendations', label: 'Recommendations', icon: Sparkles },
+  { id: 'recommendations', label: 'Recommendations', icon: Compass },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
@@ -1739,25 +1739,8 @@ export default function Project() {
             return (
             <div className="mt-4 space-y-4">
               <div>
-                <h2 className="font-heading flex items-center gap-2 text-xl font-extrabold"><Sparkles size={20} className="text-accent" /> Recommendations</h2>
+                <h2 className="font-heading flex items-center gap-2 text-xl font-extrabold"><Compass size={20} className="text-accent" /> Recommendations</h2>
                 <p className="text-sm text-text2">Personalized next steps for <b>this project only</b> — rebuilt from your latest quiz, practice and flashcard activity.</p>
-              </div>
-              <div className="card fade-up !border-accent/30 !bg-accent/[0.05]">
-                <p className="text-xs font-bold uppercase tracking-widest text-accent">Adaptive next step</p>
-                <p className="mt-1 text-[15px] font-medium">{nextText || 'Upload material and take your first quiz to generate personalized next steps.'}</p>
-                {!!adaptive?.actions?.length && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {adaptive.actions.map((a, i) => (
-                      <button key={i} onClick={() => goTab(a.tab)} title={a.detail || a.label} className="btn btn-primary !py-1.5 !text-xs">{a.label} →</button>
-                    ))}
-                  </div>
-                )}
-                {!adaptive?.actions?.length && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button onClick={() => goTab('materials')} className="btn btn-outline !py-1.5 !text-xs">Upload a PDF</button>
-                    <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Take first quiz</button>
-                  </div>
-                )}
               </div>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="card fade-up">
