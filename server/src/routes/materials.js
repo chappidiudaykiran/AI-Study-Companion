@@ -13,14 +13,30 @@ const { deleteMaterialCascade } = require('../services/cleanup');
 const router = express.Router();
 router.use(auth);
 
-const uploadDir = path.join(__dirname, '../../uploads');
+// UPLOAD_DIR env allows pointing at a persistent disk (Render's default
+// ./uploads is ephemeral — files vanish on restart/redeploy).
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const MAX_MB = Number(process.env.MAX_PDF_MB) || 15;
+
+function isPdfFile(filePath) {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(5);
+    fs.readSync(fd, buf, 0, 5, 0);
+    fs.closeSync(fd);
+    return buf.toString() === '%PDF-';
+  } catch { return false; }
+}
 
 const upload = multer({
   dest: uploadDir,
-  limits: { fileSize: 15 * 1024 * 1024 },
+  limits: { fileSize: MAX_MB * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype !== 'application/pdf') return cb(new Error('Only PDF allowed'));
+    if (file.mimetype !== 'application/pdf' || !/\.pdf$/i.test(file.originalname || '')) {
+      return cb(new Error('Only PDF allowed'));
+    }
     cb(null, true);
   },
 });
@@ -29,6 +45,11 @@ const upload = multer({
 router.post('/projects/:projectId/materials', uploadLimiter, loadProject, upload.single('pdf'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'PDF file required (field: pdf)' });
+    // Magic-byte check: mimetype/extension are client-spoofable.
+    if (!isPdfFile(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch {}
+      return res.status(400).json({ error: 'File is not a valid PDF (bad magic bytes)' });
+    }
     const material = await Material.create({
       project: req.project._id,
       user: req.user._id,
@@ -97,3 +118,5 @@ router.delete('/materials/:materialId', async (req, res, next) => {
 });
 
 module.exports = router;
+module.exports.isPdfFile = isPdfFile;
+module.exports.uploadDir = uploadDir;

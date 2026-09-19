@@ -95,9 +95,16 @@ async function generateStructured(prompt, opts = {}, schema = null) {
 
 async function embed(texts, { user = null, project = null } = {}) {
   const t0 = Date.now();
+  // No-key fallback: deterministic local hash embeddings keep retrieval working
+  // (vector mode) with zero API keys, regardless of AI_PROVIDER. Documented in
+  // docs/AI_USAGE.md — Inception-only deploys do NOT need a Gemini key.
+  if (!process.env.GEMINI_API_KEY) {
+    const out = texts.map((t) => localEmbed(t));
+    await logUsage({ user, project, feature: 'embed', latency_ms: Date.now() - t0, tokens: Math.ceil(texts.join('').length / 4) });
+    return out;
+  }
   try {
-    const gen = client().getGenerativeModel({ model: EMBED_MODEL });
-    // Gemini embed API via generate: use embedContent
+    // Gemini embed API via embedContent
     const model = client().getGenerativeModel({ model: EMBED_MODEL });
     const out = [];
     for (const t of texts) {
@@ -120,4 +127,18 @@ function cosine(a, b) {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-module.exports = { generateText, generateStructured, embed, cosine, MODEL };
+// Deterministic 64-dim hashed bag-of-words embedding (unit-normalized).
+// Used when no GEMINI_API_KEY is set so RAG still ranks by content.
+function localEmbed(text, dims = 64) {
+  const vec = new Array(dims).fill(0);
+  const words = String(text || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+  for (const w of words) {
+    let h = 2166136261;
+    for (let i = 0; i < w.length; i++) { h ^= w.charCodeAt(i); h = Math.imul(h, 16777619); }
+    vec[Math.abs(h) % dims] += 1;
+  }
+  const norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
+  return vec.map((v) => v / norm);
+}
+
+module.exports = { generateText, generateStructured, embed, cosine, localEmbed, MODEL };

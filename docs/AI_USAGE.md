@@ -10,8 +10,10 @@
   Gemini 2.5 Flash or InceptionLabs Mercury-2.5 — no caller changes.
 - Tutor answers: grounded in project chunks, learner-profile injection (weaknesses,
   strengths, accuracy), citations, refusal path.
-- Embeddings: `text-embedding-004` stored on Chunk, cosine top-k + keyword fallback
-  (system works with zero AI keys in keyword mode).
+- Embeddings: `text-embedding-004` stored on Chunk, cosine top-k + keyword fallback.
+  No-key mode uses deterministic local hash embeddings (vector ranking without
+  API keys); Inception-only deploys do NOT need a Gemini key.
+  Tutor streams via SSE at `POST /api/projects/:id/tutor/stream` (`meta`/`delta`/`done`).
 - Quiz generation (parallel) + open-ended grading + concept extraction +
   recommendations: schema-validated structured calls (Zod, fix-retry once).
 - All runtime calls logged to `AiLog` (model, feature, latency, tokens,

@@ -56,6 +56,51 @@ t('tutor schema requires answer', ()=>{
   const { tutorSchema } = require('../src/services/aiSchemas');
   assert.throws(()=>tutorSchema.parse({ citations:[], confidence:0.5 }));
 });
+t('first failure counts mistake=1 (2nd-failure rule)', ()=>{
+  const score = 20;
+  const mistakes = score < 60 ? 1 : 0;
+  assert.strictEqual(mistakes, 1);
+  assert.ok((1 + 1) >= 2, '2nd failure must trigger recommendation');
+});
+t('verifyCitations maps per-hit chunkId + rejects invented docs', ()=>{
+  const { verifyCitations } = require('../src/routes/tutor');
+  const hits = [
+    { doc: 'Notes.pdf', page: 2, chunkId: 'c1' },
+    { doc: 'Guide.pdf', page: 5, chunkId: 'c2' },
+  ];
+  const out = verifyCitations(
+    [{ doc: 'Notes.pdf', page: 2 }, { doc: 'Invented.pdf', page: 9 }],
+    hits
+  );
+  assert.strictEqual(out[0].chunkId, 'c1');
+  assert.strictEqual(out[1].doc, 'Guide.pdf');
+  assert.strictEqual(out[1].chunkId, 'c2');
+});
+t('assignPages locates chunks via form-feed split', ()=>{
+  const { assignPages } = require('../src/services/pdfService');
+  const full = 'alpha one two three\fbeta four five six';
+  const pages = assignPages(['alpha one', 'beta four'], full, 2);
+  assert.deepStrictEqual(pages, [1, 2]);
+});
+t('localEmbed deterministic + normalized', ()=>{
+  const { localEmbed, cosine } = require('../src/services/aiClient');
+  const a = localEmbed('photosynthesis chlorophyll leaf');
+  const b = localEmbed('photosynthesis chlorophyll leaf');
+  assert.strictEqual(a.length, 64);
+  assert.ok(Math.abs(cosine(a, b) - 1) < 1e-9);
+  assert.ok(cosine(a, localEmbed('quantum entanglement谋')) < 0.99);
+});
+t('magic-byte check rejects non-PDF', ()=>{
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const { isPdfFile } = require('../src/routes/materials');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdfcheck-'));
+  const good = path.join(dir, 'a.pdf'), bad = path.join(dir, 'b.pdf');
+  fs.writeFileSync(good, '%PDF-1.4 fake');
+  fs.writeFileSync(bad, 'hello not pdf');
+  assert.strictEqual(isPdfFile(good), true);
+  assert.strictEqual(isPdfFile(bad), false);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail?1:0);

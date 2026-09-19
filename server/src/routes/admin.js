@@ -139,6 +139,7 @@ router.post('/jobs/:id/retry', async (req, res, next) => {
     if (!job) return res.status(404).json({ error: 'Not found' });
     job.status = 'queued';
     job.error = '';
+    job.retries = 0;
     await job.save();
     res.json({ job });
   } catch (e) { next(e); }

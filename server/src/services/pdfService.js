@@ -15,6 +15,23 @@ function chunkText(text, size = 800, overlap = 120) {
   return chunks.filter((c) => c.length > 50);
 }
 
+// Page assignment: pdf-parse concatenates pages (often separated by \f).
+// Prefer locating each chunk inside a per-page split; fall back to positional
+// (word-offset proportional) mapping when no \f markers exist.
+function assignPages(rawChunks, fullText, pages) {
+  const pageTexts = String(fullText || '').split('\f').map((p) => p.trim()).filter(Boolean);
+  if (pageTexts.length >= 2) {
+    return rawChunks.map((chunk, i) => {
+      const probe = chunk.slice(0, 60).toLowerCase();
+      const idx = pageTexts.findIndex((p) => p.toLowerCase().includes(probe));
+      if (idx >= 0) return Math.min(pages, idx + 1);
+      return Math.min(pages, Math.floor((i / Math.max(1, rawChunks.length)) * pages) + 1);
+    });
+  }
+  const perPage = Math.max(1, Math.ceil(rawChunks.length / pages));
+  return rawChunks.map((_, i) => Math.min(pages, Math.floor(i / perPage) + 1));
+}
+
 async function processMaterial(materialId) {
   const material = await Material.findById(materialId);
   if (!material) throw new Error('Material not found');
@@ -34,7 +51,11 @@ async function processMaterial(materialId) {
   };
 
   try {
+    if (!fs.existsSync(material.filePath)) {
+      throw new Error(`Source file missing at ${material.filePath} (ephemeral disk restart?) — please re-upload the PDF`);
+    }
     const buf = fs.readFileSync(material.filePath);
+    if (buf.slice(0, 5).toString() !== '%PDF-') throw new Error('File is not a valid PDF (bad magic bytes)');
     const pdf = await pdfParse(buf);
     const fullText = (pdf.text || '').replace(/\s+\n/g, '\n').trim();
     if (!fullText || fullText.length < 100) throw new Error('No extractable text (scanned PDF needs OCR — out of prototype scope)');
@@ -71,9 +92,9 @@ async function processMaterial(materialId) {
     } catch (e) { console.error('concept extract failed:', e.message); }
     await setProgress(32, 'Splitting into chunks');
 
-    // split into chunks; assign page round-robin by position
+    // split into chunks; pages located via \f split when available, else positional
     const rawChunks = chunkText(fullText);
-    const perPage = Math.max(1, Math.ceil(rawChunks.length / pages));
+    const assignedPages = assignPages(rawChunks, pdf.text || '', pages);
 
     // delete old chunks for retry safety
     await Chunk.deleteMany({ material: material._id });
@@ -81,7 +102,7 @@ async function processMaterial(materialId) {
     const chunkDocs = rawChunks.map((text, i) => ({
       material: material._id,
       project: material.project,
-      page: Math.min(pages, Math.floor(i / perPage) + 1),
+      page: assignedPages[i] || 1,
       text,
       embedding: [],
     }));
@@ -121,4 +142,4 @@ async function processMaterial(materialId) {
   }
 }
 
-module.exports = { processMaterial, chunkText };
+module.exports = { processMaterial, chunkText, assignPages };

@@ -1,5 +1,6 @@
 const Mastery = require('../models/Mastery');
 const Attempt = require('../models/Attempt');
+const Question = require('../models/Question');
 const LearningContext = require('../models/LearningContext');
 
 // Builds the relevant-only context slice for the current task (§11):
@@ -10,14 +11,25 @@ async function getLearningContext(projectId, userId) {
     Attempt.find({ project: projectId, user: userId }).sort({ createdAt: -1 }).limit(10).lean(),
   ]);
 
+  // Attempt carries no concept field — resolve via parent Question.
+  let conceptByQ = {};
+  try {
+    const qIds = [...new Set(recent.map((a) => String(a.question)).filter(Boolean))];
+    if (qIds.length) {
+      const qDocs = await Question.find({ _id: { $in: qIds } }).select('_id concept').lean();
+      conceptByQ = Object.fromEntries(qDocs.map((q) => [String(q._id), q.concept || 'General']));
+    }
+  } catch {}
+  const withConcepts = recent.map((a) => ({ ...a, concept: conceptByQ[String(a.question)] || 'General' }));
+
   const weaknesses = mastery.filter((m) => m.score < 70).slice(0, 3).map((m) => `${m.concept} (${m.score}%)`);
   const strengths = mastery.filter((m) => m.score >= 75).slice(-2).map((m) => `${m.concept} (${m.score}%)`);
-  const mistakeConcepts = recent.filter((a) => (a.score || 0) < 60);
-  const recentAccuracy = recent.length
-    ? Math.round(recent.reduce((s, a) => s + (a.score || 0), 0) / recent.length)
+  const mistakeConcepts = withConcepts.filter((a) => (a.score || 0) < 60);
+  const recentAccuracy = withConcepts.length
+    ? Math.round(withConcepts.reduce((s, a) => s + (a.score || 0), 0) / withConcepts.length)
     : null;
 
-  return { weaknesses, strengths, mistakeConcepts, recentAccuracy, attempts: recent.length };
+  return { weaknesses, strengths, mistakeConcepts, recentAccuracy, attempts: withConcepts.length };
 }
 
 function contextBlock(ctx) {
