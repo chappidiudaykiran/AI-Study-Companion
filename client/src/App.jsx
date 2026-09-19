@@ -27,7 +27,7 @@ function useDark() {
     document.documentElement.classList.toggle('dark', dark);
     localStorage.setItem('theme', dark ? 'dark' : 'light');
   }, [dark]);
-  return [dark, () => setDark(!dark)];
+  return [dark, () => setDark(!dark), setDark];
 }
 
 // Breadcrumb context lives in ./crumbs.js (re-exported here for compat)
@@ -252,6 +252,18 @@ function Sidebar({ collapsed, setCollapsed }) {
   );
 }
 
+function AdminBar() {
+  const nav = useNavigate();
+  const [dark, toggle] = useDark();
+  return (
+    <div className="fixed right-4 top-4 z-[100] flex items-center gap-3 rounded-full border border-border bg-bg2 p-1.5 shadow-lg">
+      <button onClick={toggle} title={dark ? 'Switch to light mode' : 'Switch to dark mode'} className="rounded-full p-2 transition text-text2 hover:bg-surface hover:text-text">{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
+      <span aria-hidden className="h-5 w-px bg-border" />
+      <button onClick={() => { localStorage.clear(); nav('/login'); }} title="Logout" className="rounded-full p-2 transition text-text2 hover:bg-red-50 hover:text-red-600"><LogOut size={18} /></button>
+    </div>
+  );
+}
+
 function Topbar({ collapsed }) {
   const nav = useNavigate();
   const location = useLocation();
@@ -340,7 +352,7 @@ export default function App() {
     <CrumbCtx.Provider value={{ crumbs, setCrumbs }}>
       <div className="min-h-screen bg-bg">
         {!isAuth && !adminView && <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />}
-        {!isAuth && <Topbar collapsed={collapsed} />}
+        {!isAuth && (adminView ? <AdminBar /> : <Topbar collapsed={collapsed} />)}
         <div className={isAuth || adminView ? '' : collapsed ? 'lg:pl-16' : 'lg:pl-64'}>
           <main className={isAuth || adminView ? '' : 'page'}>
             <Routes>

@@ -69,8 +69,7 @@ export default function Admin() {
 
   return (
     <div className="theme-dashboard min-h-screen pb-16">
-      <div className="container">
-        <Link to="/" className="text-sm text-text2 hover:underline">← Home</Link>
+      <div className="container pt-6">
         <div className="page-header fade-up">
           <h1 className="page-title">Admin <span className="hero-gradient-text">Dashboard</span></h1>
           <p className="page-subtitle">Users, spaces, projects, learning activity, AI usage & quality, background jobs, system health.</p>
