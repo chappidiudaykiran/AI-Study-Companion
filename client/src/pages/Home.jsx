@@ -28,6 +28,8 @@ export default function Home() {
   const [perr, setPerr] = useState('');
   const createSpaceRef = useRef(null);
   const newProjectRef = useRef(null);
+  const createSpaceInputRef = useRef(null);
+  const newProjectInputRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const { setCrumbs } = useCrumbs();
 
@@ -77,6 +79,7 @@ export default function Home() {
   useEffect(() => {
     if (searchParams.get('createSpace') && createSpaceRef.current) {
       createSpaceRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => createSpaceInputRef.current?.focus({ preventScroll: true }), 400);
     }
   }, [searchParams]);
 
@@ -84,6 +87,7 @@ export default function Home() {
     if (searchParams.get('newProject')) {
       setShowPform(true);
       setTimeout(() => newProjectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+      setTimeout(() => newProjectInputRef.current?.focus({ preventScroll: true }), 550);
     }
   }, [searchParams]);
 
@@ -175,7 +179,7 @@ export default function Home() {
             <div ref={createSpaceRef} className="card fade-up-2">
               <h2 className="font-heading text-lg font-bold">Create a space</h2>
               <form onSubmit={createSpace} className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <input className="input flex-1" placeholder="e.g. Machine Learning" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} />
+                <input ref={createSpaceInputRef} className="input flex-1" placeholder="e.g. Machine Learning" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} />
                 <input className="input flex-1" placeholder="Short description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 <button className="btn btn-primary"><Plus size={16} /> Create</button>
               </form>
@@ -219,7 +223,7 @@ export default function Home() {
 
             {!isAdmin && showPform && (
               <form ref={newProjectRef} onSubmit={createProject} className="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 sm:flex-row">
-                <input className="input flex-1" placeholder="Project name (min 2 chars)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required minLength={2} />
+                <input ref={newProjectInputRef} className="input flex-1" placeholder="Project name (min 2 chars)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required minLength={2} />
                 <input className="input flex-1" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required minLength={5} />
                 <button className="btn btn-primary whitespace-nowrap">Create project</button>
               </form>
