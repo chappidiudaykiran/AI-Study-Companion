@@ -191,9 +191,10 @@ function Sidebar() {
             {!selSpace && (
             <button
               onClick={() => nav('/')}
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${!activeSpaceId && location.pathname === '/' ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}
+              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${!activeSpaceId && location.pathname === '/' ? 'border-border bg-bg3' : 'border-transparent hover:bg-surface'}`}
             >
-              <HomeIcon size={17} className="shrink-0" /> {!collapsed && 'Spaces'}
+              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white"><FolderOpen size={16} /></span>
+              {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">Spaces</span><span className="block text-xs text-text3">Manage learning spaces</span></span>}
             </button>
             )}
             {selSpace ? (
