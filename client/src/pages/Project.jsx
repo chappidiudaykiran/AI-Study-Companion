@@ -81,9 +81,11 @@ export default function Project() {
   const [tab, setTab] = useState(searchParams.get('tab') || 'overview');
   const [file, setFile] = useState(null);
   const [matStatus, setMatStatus] = useState('');
+  // live upload progress: {pct, stage, elapsedMs} + local start clock
+  const [matProgress, setMatProgress] = useState(null);
+  const [uploadStart, setUploadStart] = useState(null);
   const [q, setQ] = useState('');
-  const [chat, setChat] = useState([]);
-  const [asking, setAsking] = useState(false);
+  const [chat, setChat] = useState([]);  const [asking, setAsking] = useState(false);
   // Tutor saved chats (left CHATS panel, like screenshot)
   const [sessions, setSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -277,14 +279,42 @@ export default function Project() {
     const fd = new FormData();
     fd.append('pdf', file);
     setMatStatus('uploading...');
+    setMatProgress({ pct: 2, stage: 'Uploading file', elapsedMs: 0 });
+    setUploadStart(Date.now());
     const { data } = await api.post(`/api/projects/${id}/materials`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
     const mid = data.material._id;
     setMatStatus('queued...');
-    const timer = setInterval(async () => {
-      const s = await api.get(`/api/materials/${mid}/status`);
-      setMatStatus(s.data.material.status + (s.data.material.error ? ` — ${s.data.material.error}` : ''));
-      if (['ready', 'failed'].includes(s.data.material.status)) { clearInterval(timer); refreshStats(); loadMaterials(); }
-    }, 3000);
+    const poll = async () => {
+      try {
+        const s = await api.get(`/api/materials/${mid}/status`);
+        const m = s.data.material;
+        setMatStatus(m.status + (m.error ? ` — ${m.error}` : ''));
+        setMatProgress({ pct: m.progress ?? 0, stage: m.stage || m.status, elapsedMs: m.elapsedMs || 0 });
+        loadMaterials().catch(() => {});
+        if (['ready', 'failed'].includes(m.status)) {
+          clearInterval(timer);
+          setUploadStart(null);
+          refreshStats();
+          loadMaterials();
+        }
+      } catch {}
+    };
+    const timer = setInterval(poll, 2500);
+    poll();
+  }
+
+  // live elapsed ticker while an upload is processing
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (uploadStart == null) return;
+    const t = setInterval(() => setTick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [uploadStart]);
+
+  function fmtElapsed(ms) {
+    const s = Math.max(0, Math.floor((ms || 0) / 1000));
+    if (s < 60) return `${s}s`;
+    return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`;
   }
 
   async function ask(e) {
@@ -1120,12 +1150,16 @@ export default function Project() {
                     </div>
                   )}
                   {!chat.length && !asking && (
-                    <div className="mx-auto mt-8 max-w-md px-4 text-center">
-                      <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1f7ae0] text-white shadow-lg">
-                        <MessageCircle size={26} />
-                      </span>
-                      <p className="mt-4 font-heading text-2xl font-extrabold text-text">What do you want to learn today?</p>
-                      <p className="mt-1 text-sm text-text2">Ask anything about your uploaded PDFs — every answer cites the exact page it came from.</p>
+                    <div className="mx-auto mt-6 w-full max-w-2xl px-2">
+                      <div className="flex gap-2.5">
+                        <span className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white"><Bot size={16} /></span>
+                        <div className="rounded-2xl rounded-bl-sm border border-border bg-bg2 px-4 py-3.5 text-sm shadow-sm">
+                          <p className="font-heading text-base font-extrabold">AI Tutor</p>
+                          <p className="mt-1.5 leading-relaxed">Hello! I'm your AI tutor for this project. I answer only from your uploaded study material, with document and page citations for everything I explain.</p>
+                          <p className="mt-2 text-text2">Try asking me to define a concept, explain how something works, or compare two ideas.</p>
+                          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-semibold text-accent"><BookOpen size={12} /> Grounded in your project knowledge</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
