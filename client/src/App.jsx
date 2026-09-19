@@ -190,65 +190,60 @@ function Sidebar() {
             {!selSpace && (
             <button
               onClick={() => nav('/')}
-              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${!activeSpaceId ? 'border-border bg-bg3' : 'border-transparent hover:bg-surface'}`}
+              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${!activeSpaceId && location.pathname === '/' ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}
             >
-              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white"><LayoutGrid size={16} /></span>
-              {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">Spaces</span><span className="block text-xs text-text3">Manage learning spaces</span></span>}
+              <HomeIcon size={17} className="shrink-0" /> {!collapsed && 'Spaces'}
             </button>
             )}
-            {!collapsed && !selSpace && (
-              <button onClick={() => {
-                const target = '/?createSpace=1';
-                const cur = location.pathname + location.search;
-                if (cur === target || cur === '/?createSpace=1') { nav('/'); setTimeout(() => nav(target), 60); }
-                else nav(target);
-              }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
-                + Create Space
+            {selSpace ? (
+            <>
+              <button onClick={() => nav('/')} className="mt-1 flex w-full items-center gap-1 px-3 text-sm font-medium text-text2 hover:text-text">
+                <span aria-hidden>←</span> {!collapsed && 'Spaces'}
               </button>
-            )}
-            {(() => {
-              const sel = spaces.find((s) => s._id === activeSpaceId);
-              if (!sel) return null;
-              return (
-              <>
-                <button onClick={() => nav('/')} className="mt-2 flex w-full items-center gap-1 px-3 text-sm font-medium text-text2 hover:text-text">
-                  <span aria-hidden>←</span> {!collapsed && 'Spaces'}
+              <button onClick={() => nav(`/?space=${selSpace._id}`)} className="flex w-full items-center gap-2.5 rounded-xl border border-border bg-bg3 px-3 py-2.5 text-left">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">{(selSpace.name || 'S')[0].toUpperCase()}</span>
+                {!collapsed && <span className="min-w-0 text-left"><span className="block truncate text-sm font-semibold">{selSpace.name}</span><span className="block text-xs text-text3">{selSpace.projects ?? spaceProjects.length} project{(selSpace.projects ?? spaceProjects.length) === 1 ? '' : 's'}</span></span>}
+              </button>
+              {!collapsed && (
+                <button onClick={() => {
+                  const target = `/?space=${selSpace._id}&newProject=1`;
+                  const cur = location.pathname + location.search;
+                  if (cur === target) { nav(`/?space=${selSpace._id}`); setTimeout(() => nav(target), 60); }
+                  else nav(target);
+                }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+                  + Create Project
                 </button>
-                {!collapsed && <p className="label !mb-1 px-3 pt-2">Projects</p>}
-                {spaceProjects.map((p) => (
-                  <button
-                    key={p._id}
-                    onClick={() => nav(`/project/${p._id}`)}
-                    title={p.name}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition text-text2 hover:bg-surface hover:text-text"
-                  >
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-xs font-bold text-accent">{(p.name || 'P')[0].toUpperCase()}</span>
-                    {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">{p.name}</span><span className="block text-xs text-text3">{p.masteryAvg !== null && p.masteryAvg !== undefined ? `${p.masteryAvg}% mastery` : 'new'}</span></span>}
-                  </button>
-                ))}
-                {!spaceProjects.length && !collapsed && <p className="px-3 text-xs text-text3">No projects yet — create one below.</p>}
-                {!collapsed && (
-                <>
-                  <button onClick={() => {
-                    const target = `/?space=${sel._id}&newProject=1`;
-                    const cur = location.pathname + location.search;
-                    if (cur === target) { nav(`/?space=${sel._id}`); setTimeout(() => nav(target), 60); }
-                    else nav(target);
-                  }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
-                    + Create Project
-                  </button>
-                </>
-                )}
-              </>
-              );
-            })()}
-            {!collapsed && <p className="label !mb-1 px-3 pt-3">Insights</p>}
-            <NavLink to="/dashboard" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
-              <LayoutDashboard size={17} className="shrink-0" /> {!collapsed && 'Dashboard'}
-            </NavLink>
-            <NavLink to="/analytics" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
-              <BarChart3 size={17} className="shrink-0" /> {!collapsed && 'Global Analytics'}
-            </NavLink>
+              )}
+            </>
+            ) : (
+            <>
+              {!collapsed && <p className="label !mb-1 px-3 pt-3">Spaces</p>}
+              {spaces.map((s) => {
+                const active = activeSpaceId === s._id;
+                return (
+                <button
+                  key={s._id}
+                  onClick={() => nav(`/?space=${s._id}`)}
+                  title={s.name}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${active ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}
+                >
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-white text-xs font-bold">{(s.name || 'S')[0].toUpperCase()}</span>
+                  {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">{s.name}</span><span className="block text-xs text-text3">{s.projects ?? ''} projects</span></span>}
+                </button>
+                );
+              })}
+              {!collapsed && (
+                <button onClick={() => {
+                  const target = '/?createSpace=1';
+                  const cur = location.pathname + location.search;
+                  if (cur === target) { nav('/'); setTimeout(() => nav(target), 60); }
+                  else nav(target);
+                }} className="mt-1 w-full rounded-xl border border-dashed border-border2 px-3 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/5">
+                  + Create Space
+                </button>
+              )}
+            </>
+            )}
           </>
         )}
           </>)}
