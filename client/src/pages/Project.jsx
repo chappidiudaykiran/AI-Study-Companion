@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { UploadCloud, MessagesSquare, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
+import MathText from '../components/MathText.jsx';
 import api from '../api/client.js';
 import { useCrumbs } from '../crumbs.js';
 
@@ -393,8 +394,12 @@ export default function Project() {
                     {m.role !== 'user' && (
                       <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-white"><Bot size={14} /></span>
                     )}
-                    <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm ${m.role === 'user' ? 'rounded-br-sm bg-accent text-white' : 'rounded-bl-sm border border-border bg-bg2'}`}>
-                      <p className="whitespace-pre-wrap">{m.text}</p>
+                      <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm ${m.role === 'user' ? 'rounded-br-sm bg-accent text-white' : 'rounded-bl-sm border border-border bg-bg2'}`}>
+                        {m.role === 'user' ? (
+                          <p className="whitespace-pre-wrap">{m.text}</p>
+                        ) : (
+                          <MathText text={m.text} />
+                        )}
                       {(m.citations || []).map((c, j) => (
                         <p key={j} className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent"><BookOpen size={11} /> {c.doc} · p.{c.page}</p>
                       ))}

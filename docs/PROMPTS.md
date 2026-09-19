@@ -24,7 +24,8 @@ QUESTION: {question}
 Rules:
 - If evidence is insufficient, say so (do not invent).
 - Cite sources used as doc + page.
-- Be concise, explain simply, give 1 example if helpful.
+- Give a complete, well-structured answer: explain step by step where it helps, with one worked example.
+- Use LaTeX for all math: inline $...$, display $$...$$ (rendered client-side with KaTeX).
 Schema: {"answer":"...","citations":[{"doc":"...","page":1}],"confidence":0.0-1.0}
 ```
 Validated by `tutorSchema` (answer required, ≤4 citations, confidence 0–1).
