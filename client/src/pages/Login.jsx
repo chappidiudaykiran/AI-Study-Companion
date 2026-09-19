@@ -98,22 +98,22 @@ export default function Login() {
   const pwScore = mode === 'register' && form.password ? strength(form.password) : 0;
 
   return (
-    <div className="theme-auth flex h-dvh items-center justify-center overflow-hidden px-4 py-6">
-      <div className="fade-up grid max-h-[calc(100dvh-3rem)] w-full max-w-5xl overflow-y-auto rounded-3xl border border-border bg-bg2 shadow-xl md:grid-cols-2">
+    <div className="theme-auth flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="fade-up grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border bg-bg2 shadow-xl md:grid-cols-2">
         {/* Left: photo-style panel. Drop a real photo at client/public/login-bg.jpg to use it. */}
         <div
-          className="relative hidden flex-col justify-between overflow-hidden p-8 text-white md:flex"
+          className="relative hidden flex-col justify-center gap-5 overflow-hidden p-8 text-white md:flex"
           style={{ backgroundImage: "linear-gradient(160deg, rgba(30,27,143,0.28), rgba(20,20,60,0.45)), url('/login-bg.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
         >
           <div className="flex items-center gap-2.5">
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200/40 bg-blue-400/30">
-              <svg width="22" height="22" viewBox="0 0 60 60" fill="none" stroke="#bfdbfe" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.6" /></svg>
+              <svg width="22" height="22" viewBox="0 0 60 60" fill="none" stroke="#bfdbfe" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="4.5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.2" /></svg>
             </span>
-            <span className="font-heading text-xl font-extrabold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">AI Study Companion</span>
+            <span className="bg-gradient-to-r from-blue-200 via-blue-300 to-cyan-200 bg-clip-text font-heading text-xl font-extrabold text-transparent drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">AI Study Companion</span>
           </div>
           <div>
             <h1 className="mt-2 font-heading text-3xl font-extrabold leading-tight drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)]">Welcome back to your learning space.</h1>
-            <p className="mt-2 text-sm font-semibold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">Your projects, progress, and learning context are ready when you are.</p>
+            <p className="mt-2 text-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">Your projects, progress, and learning context are ready when you are.</p>
           </div>
           <ul className="relative space-y-4">
             {FEATURES.map((f) => (
@@ -121,7 +121,7 @@ export default function Login() {
                 <span className="z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/15"><f.icon size={17} /></span>
                 <span>
                   <span className="block text-sm font-bold drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">{f.title}</span>
-                  <span className="block text-[13px] font-semibold text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">{f.desc}</span>
+                  <span className="block text-[13px] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">{f.desc}</span>
                 </span>
               </li>
             ))}
@@ -177,7 +177,7 @@ export default function Login() {
                 </div>
               )}
             </div>
-            <button className="btn w-full bg-[#4f46e5] font-semibold text-white hover:bg-[#4338ca]" disabled={loading}>{loading ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'} <ArrowRight size={15} /></button>
+            <button className="btn btn-primary w-full" disabled={loading}>{loading ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'} <ArrowRight size={15} /></button>
             {mode === 'login' && <Link to="/forgot-password" className="block text-center text-sm text-accent hover:underline">Forgot password?</Link>}
           </form>
           {err && <p className="alert alert-error mt-3">{err}{err === 'Email already used' ? ' — click “Have account? Login” below.' : ''}</p>}
