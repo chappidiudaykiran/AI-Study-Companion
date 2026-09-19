@@ -764,8 +764,8 @@ export default function Project() {
       {/* Main content — tutor goes edge-to-edge with zero padding */}
       <div className={tab === 'tutor' ? '' : 'container pt-6'}>
         <div className={tab === 'tutor' ? '' : 'mt-3'}>
-          {/* Adaptive recommendations — everywhere except overview/growth (own card), tutor (own chips), materials (clean upload view), concepts (grouped view), quiz + practice (clean setup view), dashboard (own next-step card) */}
-          {tab !== 'overview' && tab !== 'growth' && tab !== 'tutor' && tab !== 'materials' && tab !== 'concepts' && tab !== 'quiz' && tab !== 'practice' && tab !== 'dashboard' && (
+          {/* Adaptive recommendations — everywhere except overview/growth (own card), tutor (own chips), materials (clean upload view), concepts (grouped view), quiz + practice (clean setup view), dashboard (own next-step card), analytics (clean charts view) */}
+          {tab !== 'overview' && tab !== 'growth' && tab !== 'tutor' && tab !== 'materials' && tab !== 'concepts' && tab !== 'quiz' && tab !== 'practice' && tab !== 'dashboard' && tab !== 'analytics' && (
             <div className="mb-4"><AdaptiveBanner adaptive={adaptive} rec={rec} onGo={goTab} /></div>
           )}
           {tab === 'overview' && (() => {
@@ -1352,7 +1352,7 @@ export default function Project() {
                 <div className="flex items-start gap-4">
                   <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white"><ListChecks size={22} /></span>
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-heading text-xl font-bold">Adaptive quiz</h2>
+                    <h2 className="font-heading text-xl font-bold">Quiz</h2>
                     <p className="mt-1 text-sm text-text2">Questions per round, picked from your weakest concepts and recent mistakes. Difficulty adapts to your mastery — answer well and it gets harder.</p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1 rounded-xl border border-border px-1.5 py-1.5">
