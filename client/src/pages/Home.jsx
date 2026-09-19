@@ -224,7 +224,7 @@ export default function Home() {
             </div>
 
             {!isAdmin && showPform && (
-              <form ref={newProjectRef} onSubmit={createProject} className="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-white p-4 sm:flex-row">
+              <form ref={newProjectRef} onSubmit={createProject} className="mt-4 flex flex-col gap-2 rounded-2xl border border-border bg-bg2 p-4 sm:flex-row">
                 <input ref={newProjectInputRef} className="input flex-1" placeholder="Project name (min 2 chars)" value={pform.name} onChange={(e) => setPform({ ...pform, name: e.target.value })} required minLength={2} />
                 <input className="input flex-1" placeholder="Learning goal (min 5 chars)" value={pform.goal} onChange={(e) => setPform({ ...pform, goal: e.target.value })} required minLength={5} />
                 <button className="btn btn-primary whitespace-nowrap">Create project</button>
@@ -250,7 +250,7 @@ export default function Home() {
                   confirmText=""
                 />
               ))}
-              {!projects.length && <div className="rounded-2xl border border-border bg-white p-5 text-sm text-text2">No projects yet — click “New Project” to begin.</div>}
+              {!projects.length && <div className="card text-sm text-text2">No projects yet — click “New Project” to begin.</div>}
             </div>
           </div>
         )}

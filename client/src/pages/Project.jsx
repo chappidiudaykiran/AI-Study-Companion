@@ -204,15 +204,15 @@ export default function Project() {
 
   if (!project) return <div className="container"><p className="text-sm">Loading... <Link to="/" className="text-accent hover:underline">Home</Link></p></div>;
   return (
-    <div className="flex min-h-screen bg-[#eef1f8]">
+    <div className="theme-dashboard min-h-screen pb-16">
       {/* In-page nav — mobile only (global sidebar rules on desktop) */}
-      <aside className="flex w-full shrink-0 flex-col border-b border-border bg-white lg:hidden">
+      <aside className="flex w-full shrink-0 flex-col border-b border-border bg-bg2 lg:hidden">
         <Link to="/" className="flex items-center gap-1 px-4 pt-4 text-sm font-medium text-text2 hover:text-text">
           <span aria-hidden>←</span> Back
         </Link>
 
-        <button onClick={() => goTab('overview')} title="Go to overview" className="mx-3 mt-2 flex items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:bg-[#f4f6fb]">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#4f46e5] text-sm font-bold text-white">
+        <button onClick={() => goTab('overview')} title="Go to overview" className="mx-3 mt-2 flex items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:bg-surface">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">
             {initial(project.name)}
           </span>
           <span className="min-w-0">
@@ -230,12 +230,12 @@ export default function Project() {
                 key={item.id}
                 onClick={() => goTab(item.id)}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                  active ? 'bg-[#ede9fe] font-semibold text-[#4f46e5]' : 'font-medium text-text2 hover:bg-[#f4f6fb] hover:text-text'
+                  active ? 'bg-accent/10 font-semibold text-accent' : 'font-medium text-text2 hover:bg-surface hover:text-text'
                 }`}
               >
-                <Icon size={17} className={active ? 'text-[#4f46e5]' : 'text-text3'} />
+                <Icon size={17} className={active ? 'text-accent' : 'text-text3'} />
                 <span className="flex-1">{item.label}</span>
-                {item.badge && <span className="text-[11px] font-bold text-[#6d64e8]">{item.badge}</span>}
+                {item.badge && <span className="text-[11px] font-bold text-accent">{item.badge}</span>}
               </button>
             );
           })}
@@ -244,13 +244,13 @@ export default function Project() {
         <div className="mt-auto border-t border-border p-4">
           <p className="text-[11px] font-bold uppercase tracking-widest text-text3">Avg mastery</p>
           <p className="font-heading text-2xl font-extrabold text-text">{avg}%</p>
-          <div className="mt-1 h-2 rounded bg-[#eef1f8]"><div className="h-2 rounded bg-[#4f46e5]" style={{ width: `${avg}%` }} /></div>
+          <div className="mt-1 h-2 rounded bg-surface"><div className="h-2 rounded bg-accent" style={{ width: `${avg}%` }} /></div>
           <p className="mt-2 text-[11px] text-text3">Space → Project → Material → Tutor → Quiz → Mastery</p>
         </div>
       </aside>
 
       {/* Main content */}
-      <div className="min-w-0 flex-1 px-4 py-4 lg:px-7">
+      <div className="container">
         <p className="flex items-center gap-1.5 text-[13px] text-text3">
           <Link to="/" className="hover:text-text hover:underline">Projects</Link>
           <span>/</span>
@@ -289,7 +289,7 @@ export default function Project() {
                   <button onClick={() => goTab('assignments')} className="btn btn-outline !py-1.5 !text-xs">Assignments</button>
                 </div>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-5 md:grid-cols-2">
                 <div className="card">
                   <h3 className="font-heading font-bold">Important concepts</h3>
                   <div className="mt-2 space-y-1 text-sm">
@@ -501,7 +501,7 @@ export default function Project() {
                 <div className="card"><p className="label">Concepts tracked</p><p className="font-heading text-3xl font-extrabold">{mastery.length}</p></div>
                 <div className="card"><p className="label">Events logged</p><p className="font-heading text-3xl font-extrabold">{analytics?.events?.length ?? 0}</p></div>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-5 md:grid-cols-2">
                 <div className="card fade-up">
                   <h3 className="font-heading font-bold">Mastery by concept</h3>
                   {mastery.length ? (
@@ -546,7 +546,7 @@ export default function Project() {
           {/* Sidebar step checklist (kept compact) */}
           <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-text3">
             {STEPS.map((s) => (
-              <button key={s.id} onClick={() => goTab(s.id)} className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2.5 py-1 hover:border-accent hover:text-accent">
+              <button key={s.id} onClick={() => goTab(s.id)} className="inline-flex items-center gap-1 rounded-full border border-border bg-bg2 px-2.5 py-1 hover:border-accent hover:text-accent">
                 {done[s.id] ? <CheckCircle2 size={11} className="text-green-600" /> : <Circle size={11} />}
                 {s.label}
               </button>
