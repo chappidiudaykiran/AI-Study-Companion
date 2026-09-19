@@ -401,6 +401,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const adminView = !isAuth && !!JSON.parse(localStorage.getItem('user') || 'null')?.isAdmin;
   const isTutorTab = location.pathname.startsWith('/project/') && new URLSearchParams(location.search).get('tab') === 'tutor';
+  // Project workspace has its own sidebar footer — the global tagline stays off it.
   return (
     <CrumbCtx.Provider value={{ crumbs, setCrumbs }}>
       <div className="min-h-screen bg-bg">
@@ -420,7 +421,7 @@ export default function App() {
               <Route path="/analytics" element={guard(<GlobalAnalytics />)} />
             </Routes>
           </main>
-          {!isAuth && !isTutorTab && (
+          {!isAuth && !isTutorTab && !location.pathname.startsWith('/project/') && (
           <footer className="container pb-10 text-xs text-text3">
             Space → Project → Material → Tutor → Quiz → Mastery → Recommendation. Grounded in your PDFs.
           </footer>
