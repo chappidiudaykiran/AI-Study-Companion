@@ -69,7 +69,7 @@
       radial-gradient(1000px 360px at 90% 0%, rgba(124, 58, 237, 0.30), transparent 58%),
       linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 68%, var(--color-bg2) 100%);
   }
-  .page-header { @apply mb-8 border-b border-border py-10 pb-6; }
+  .page-header { @apply mb-5 border-b border-border py-8 pb-5; }
   .page-title { @apply font-heading text-4xl font-extrabold tracking-tight; }
   .page-subtitle { @apply mt-2 text-base text-text2; }
   .card { @apply rounded-2xl border border-border bg-bg2 p-6 transition-colors hover:border-border2; }

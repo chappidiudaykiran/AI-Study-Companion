@@ -3,17 +3,17 @@ import { Trash2 } from 'lucide-react';
 // Light Ecurve-inspired card: slim gradient accent bar, soft icon tile,
 // clear title + sub text, divider, split footer. Compact density everywhere.
 const SPACE_THEMES = [
-  { bar: 'from-blue-600 to-indigo-800', soft: 'bg-blue-600/10 text-blue-700 dark:text-blue-300' },
-  { bar: 'from-violet-600 to-indigo-800', soft: 'bg-violet-600/10 text-violet-700 dark:text-violet-300' },
-  { bar: 'from-cyan-600 to-slate-800', soft: 'bg-cyan-600/10 text-cyan-700 dark:text-cyan-300' },
   { bar: 'from-sky-500 to-blue-700', soft: 'bg-sky-600/10 text-sky-700 dark:text-sky-300' },
+  { bar: 'from-blue-600 to-indigo-800', soft: 'bg-blue-600/10 text-blue-700 dark:text-blue-300' },
+  { bar: 'from-violet-600 to-purple-800', soft: 'bg-violet-600/10 text-violet-700 dark:text-violet-300' },
+  { bar: 'from-indigo-500 to-blue-800', soft: 'bg-indigo-600/10 text-indigo-700 dark:text-indigo-300' },
 ];
 
 const PROJECT_THEMES = [
-  { bar: 'from-emerald-600 to-teal-800', soft: 'bg-emerald-600/10 text-emerald-700 dark:text-emerald-300' },
-  { bar: 'from-amber-500 to-orange-700', soft: 'bg-amber-600/10 text-amber-700 dark:text-amber-300' },
-  { bar: 'from-rose-600 to-red-800', soft: 'bg-rose-600/10 text-rose-700 dark:text-rose-300' },
-  { bar: 'from-fuchsia-600 to-pink-800', soft: 'bg-fuchsia-600/10 text-fuchsia-700 dark:text-fuchsia-300' },
+  { bar: 'from-sky-400 to-blue-600', soft: 'bg-sky-500/10 text-sky-700 dark:text-sky-300' },
+  { bar: 'from-blue-500 to-indigo-700', soft: 'bg-blue-500/10 text-blue-700 dark:text-blue-300' },
+  { bar: 'from-violet-500 to-purple-700', soft: 'bg-violet-500/10 text-violet-700 dark:text-violet-300' },
+  { bar: 'from-indigo-400 to-blue-600', soft: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' },
 ];
 
 function themeFor(id, index, palette = 'project') {
