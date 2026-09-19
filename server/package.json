@@ -22,6 +22,7 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^10.0.10",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^3.4.120",
     "zod": "^3.23.8"
   }
 }

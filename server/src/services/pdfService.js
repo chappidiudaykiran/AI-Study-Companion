@@ -32,6 +32,37 @@ function assignPages(rawChunks, fullText, pages) {
   return rawChunks.map((_, i) => Math.min(pages, Math.floor(i / perPage) + 1));
 }
 
+// Tolerant fallback for malformed PDFs (e.g. "Bad xref entry"): pdf-parse's
+// bundled pdf.js throws, while pdfjs-dist v3 recovers and extracts text.
+async function extractWithPdfJs(buffer) {
+  const pdfjs = require('pdfjs-dist/legacy/build/pdf.js');
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(buffer), verbosity: 0,
+    isEvalSupported: false, useSystemFonts: true,
+  }).promise;
+  const pages = doc.numPages || 1;
+  const pageTexts = [];
+  for (let i = 1; i <= pages; i++) {
+    const page = await doc.getPage(i);
+    const tc = await page.getTextContent();
+    pageTexts.push((tc.items || []).map((it) => it.str || '').join(' '));
+  }
+  try { await doc.destroy(); } catch {}
+  return { text: pageTexts.join('\f'), numpages: pages };
+}
+
+async function extractPdf(buffer) {
+  try {
+    const pdf = await pdfParse(buffer);
+    return { text: pdf.text || '', numpages: pdf.numpages || 1, via: 'pdf-parse' };
+  } catch (e) {
+    if (!/xref|parse|invalid|trailer|entry/i.test(e.message || '')) throw e;
+    console.error('pdf-parse failed, trying tolerant fallback:', e.message);
+    const fb = await extractWithPdfJs(buffer);
+    return { ...fb, via: 'pdfjs-fallback' };
+  }
+}
+
 async function processMaterial(materialId) {
   const material = await Material.findById(materialId);
   if (!material) throw new Error('Material not found');
@@ -56,7 +87,7 @@ async function processMaterial(materialId) {
     }
     const buf = fs.readFileSync(material.filePath);
     if (buf.slice(0, 5).toString() !== '%PDF-') throw new Error('File is not a valid PDF (bad magic bytes)');
-    const pdf = await pdfParse(buf);
+    const pdf = await extractPdf(buf);
     const fullText = (pdf.text || '').replace(/\s+\n/g, '\n').trim();
     if (!fullText || fullText.length < 100) throw new Error('No extractable text (scanned PDF needs OCR — out of prototype scope)');
 
@@ -142,4 +173,4 @@ async function processMaterial(materialId) {
   }
 }
 
-module.exports = { processMaterial, chunkText, assignPages };
+module.exports = { processMaterial, chunkText, assignPages, extractPdf, extractWithPdfJs };
