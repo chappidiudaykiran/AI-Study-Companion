@@ -235,12 +235,6 @@ function Sidebar() {
           </>)}
       </div>
       <div className="border-t border-border p-3">
-        <NavLink to="/dashboard" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
-          <LayoutDashboard size={17} className="shrink-0" /> {!collapsed && 'Dashboard'}
-        </NavLink>
-        <NavLink to="/analytics" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
-          <BarChart3 size={17} className="shrink-0" /> {!collapsed && 'Global Analytics'}
-        </NavLink>
         <button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition text-text2 hover:bg-surface hover:text-text">
           <LogOut size={17} className="shrink-0" /> {!collapsed && 'Sign out'}
         </button>

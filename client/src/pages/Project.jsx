@@ -317,6 +317,8 @@ export default function Project() {
                   <button onClick={() => goTab('materials')} className="btn btn-outline !py-1.5 !text-xs">Materials</button>
                   <button onClick={() => goTab('tutor')} className="btn btn-outline !py-1.5 !text-xs">Tutor</button>
                   <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Quiz</button>
+                  <Link to="/dashboard" className="btn btn-outline !py-1.5 !text-xs">Dashboard</Link>
+                  <Link to="/analytics" className="btn btn-outline !py-1.5 !text-xs">Global Analytics</Link>
                 </div>
               </div>
             </div>
