@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { UploadCloud, MessagesSquare, ListChecks, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2, Layers, Home as HomeIcon, LayoutDashboard, PenLine } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line, Cell } from 'recharts';
 import MathText from '../components/MathText.jsx';
 import { Skel, TextLines, ChatThread, ListRows, PageSkeleton } from '../components/Shimmer.jsx';
 import api from '../api/client.js';
