@@ -195,12 +195,12 @@ export default function Admin() {
   return (
     <div className="theme-dashboard min-h-screen pb-16">
       <div className="container max-w-6xl pt-6">
-        {/* HERO — card-style System Overview */}
-        <div className="card fade-up !p-6">
+        {/* HERO — very light sky-blue Admin Dashboard card */}
+        <div className="card fade-up !border-sky-200/70 !bg-sky-50 !p-6 dark:!border-white/10 dark:!bg-sky-950/40">
           <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-text3"><ShieldCheck size={13} /> Admin · Mission Control</p>
-              <h1 className="font-heading mt-1 text-2xl font-extrabold">System Overview</h1>
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-text3"><ShieldCheck size={13} /> Admin</p>
+              <h1 className="font-heading mt-1 text-2xl font-extrabold">Admin Dashboard</h1>
             </div>
             <div className="flex items-center gap-2">
               {(o?.failures24h ?? 0) > 0 && (
