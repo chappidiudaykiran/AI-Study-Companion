@@ -39,7 +39,7 @@ export default function StudyCard({
       onClick={onOpen}
     >
       <div className={`h-1.5 bg-gradient-to-r ${theme.bar}`} />
-      <div className="p-6">
+      <div className="flex h-full flex-1 flex-col p-6">
         <div className="flex items-center gap-4">
           <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold ${theme.soft}`}>
             {(title || 'S')[0].toUpperCase()}
@@ -65,7 +65,7 @@ export default function StudyCard({
             <span className="text-[13px] font-bold text-text">{progress}%</span>
           </div>
         )}
-        <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-4">
+        <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-4">
           <span className="text-[13px] text-text2">{meta}</span>
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition-all group-hover:gap-2.5">
             {openLabel}
