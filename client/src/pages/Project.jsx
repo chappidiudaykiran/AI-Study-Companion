@@ -719,7 +719,7 @@ export default function Project() {
 
   if (!project) return <div className="theme-dashboard min-h-screen"><PageSkeleton /></div>;
   return (
-    <div className={`theme-dashboard min-h-screen ${tab === 'tutor' ? 'pb-0' : 'pb-16'}`}>
+    <div className={`theme-dashboard min-h-screen ${tab === 'tutor' ? 'pb-0' : 'pb-16'} ${tab === 'overview' ? 'bg-gradient-to-b from-sky-100 via-indigo-50 to-transparent dark:from-[#0b1a33] dark:via-[#0d1530] dark:to-transparent' : ''}`}>
       {/* In-page nav — mobile only (global sidebar rules on desktop) */}
       <aside className="flex w-full shrink-0 flex-col border-b border-border bg-bg2 lg:hidden">
         <Link to="/" className="flex items-center gap-1 px-4 pt-4 text-sm font-medium text-text2 hover:text-text">
