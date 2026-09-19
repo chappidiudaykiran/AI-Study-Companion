@@ -213,7 +213,6 @@ export default function Home() {
             <button onClick={clearSelection} className="flex items-center gap-1 text-sm text-text2 hover:text-text">← All spaces</button>
             <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#4f46e5]">Space</p>
                 <h1 className="mt-1 font-heading text-3xl font-extrabold text-text">{selected.name}</h1>
                 <p className="mt-1 text-sm text-text2">{projects.length} project{projects.length === 1 ? '' : 's'} in this space. Select a project to open its workspace.</p>
               </div>
