@@ -218,21 +218,7 @@ function Sidebar() {
             </>
             ) : (
             <>
-              {!collapsed && <p className="label !mb-1 px-3 pt-3">Spaces</p>}
-              {spaces.map((s) => {
-                const active = activeSpaceId === s._id;
-                return (
-                <button
-                  key={s._id}
-                  onClick={() => nav(`/?space=${s._id}`)}
-                  title={s.name}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${active ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}
-                >
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-white text-xs font-bold">{(s.name || 'S')[0].toUpperCase()}</span>
-                  {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">{s.name}</span><span className="block text-xs text-text3">{s.projects ?? ''} projects</span></span>}
-                </button>
-                );
-              })}
+            {!collapsed && <p className="label !mb-1 px-3 pt-3">Spaces</p>}
               {!collapsed && (
                 <button onClick={() => {
                   const target = '/?createSpace=1';
@@ -369,9 +355,11 @@ export default function App() {
               <Route path="/analytics" element={guard(<GlobalAnalytics />)} />
             </Routes>
           </main>
+          {!isAuth && (
           <footer className="container pb-10 text-xs text-text3">
             Space → Project → Material → Tutor → Quiz → Mastery → Recommendation. Grounded in your PDFs.
           </footer>
+          )}
         </div>
       </div>
     </CrumbCtx.Provider>
