@@ -45,6 +45,11 @@ router.post('/projects/:projectId/materials', uploadLimiter, loadProject, upload
       idempotencyKey: `doc-${material._id}`,
     });
     await logEvent({ user: req.user._id, project: req.project._id, type: 'material.uploaded', payload: { materialId: material._id, filename: material.filename } });
+    // kick the worker now instead of waiting for the 10s poll so concepts appear fast
+    try {
+      const { runOnce } = require('../services/jobWorker');
+      runOnce().catch(() => {});
+    } catch {}
     res.status(201).json({ material });
   } catch (e) { next(e); }
 });
@@ -54,7 +59,17 @@ router.get('/materials/:materialId/status', async (req, res, next) => {
   try {
     const material = await Material.findOne({ _id: req.params.materialId, user: req.user._id });
     if (!material) return res.status(404).json({ error: 'Not found' });
-    res.json({ material: { id: material._id, status: material.status, pages: material.pages, error: material.error } });
+    res.json({
+      material: {
+        id: material._id,
+        status: material.status,
+        pages: material.pages,
+        error: material.error,
+        progress: material.progress || 0,
+        stage: material.stage || '',
+        elapsedMs: Date.now() - new Date(material.createdAt).getTime(),
+      },
+    });
   } catch (e) { next(e); }
 });
 
@@ -62,10 +77,11 @@ router.get('/materials/:materialId/status', async (req, res, next) => {
 router.get('/projects/:projectId/materials', loadProject, async (req, res, next) => {
   try {
     const materials = await Material.find({ project: req.project._id, user: req.user._id })
-      .select('filename pages status error createdAt')
+      .select('filename pages status error progress stage createdAt')
       .sort({ createdAt: -1 })
       .lean();
-    res.json({ materials });
+    const now = Date.now();
+    res.json({ materials: materials.map((m) => ({ ...m, elapsedMs: now - new Date(m.createdAt).getTime() })) });
   } catch (e) { next(e); }
 });
 

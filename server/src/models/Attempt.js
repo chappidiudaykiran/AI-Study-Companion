@@ -7,6 +7,8 @@ const attemptSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     userAnswer: { type: String, default: '' },
     score: { type: Number, default: 0 },
+    // where the attempt came from (quiz rounds vs practice papers)
+    source: { type: String, enum: ['quiz', 'practice', 'tutor'], default: 'quiz' },
     feedback: {
       covered: { type: [String], default: [] },
       missing: { type: [String], default: [] },

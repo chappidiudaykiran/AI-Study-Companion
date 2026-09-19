@@ -25,6 +25,13 @@ const openQSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
 });
 
+const shortQSchema = z.object({
+  stem: z.string().min(5).max(2000),
+  answer: z.string().min(1).max(200),
+  accepted: z.array(z.string().min(1).max(200)).max(6).default([]),
+  difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
+});
+
 const gradeSchema = z.object({
   score: z.coerce.number().min(0).max(100),
   covered: z.array(z.string().max(300)).max(10).default([]),
@@ -58,4 +65,4 @@ const flashcardsSchema = z.object({
     .max(12),
 });
 
-module.exports = { tutorSchema, mcqSchema, openQSchema, gradeSchema, conceptsSchema, recommendSchema, flashcardsSchema };
+module.exports = { tutorSchema, mcqSchema, openQSchema, shortQSchema, gradeSchema, conceptsSchema, recommendSchema, flashcardsSchema };

@@ -21,6 +21,32 @@ async function deleteMaterialCascade(materialId) {
   try {
     if (mat.filePath && fs.existsSync(mat.filePath)) fs.unlinkSync(mat.filePath);
   } catch {}
+  // Remove this document's concepts immediately so deleted docs never show
+  // concepts. A shared name still present in a remaining material is reassigned
+  // to that material instead of being dropped.
+  try {
+    const tied = await Concept.find({ material: mat._id }).lean();
+    if (tied.length) {
+      const remaining = await Material.find({ project: mat.project, _id: { $ne: mat._id } }).select('_id filename').lean();
+      const esc = (s) => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      for (const c of tied) {
+        let reassigned = false;
+        if (remaining.length) {
+          const hit = await Chunk.findOne({
+            project: mat.project,
+            material: { $in: remaining.map((r) => r._id) },
+            text: { $regex: esc(c.name), $options: 'i' },
+          }).select('material').lean();
+          if (hit) {
+            const rm = remaining.find((r) => String(r._id) === String(hit.material));
+            await Concept.updateOne({ _id: c._id }, { $set: { material: hit.material, docName: rm?.filename || '' } });
+            reassigned = true;
+          }
+        }
+        if (!reassigned) await Concept.deleteOne({ _id: c._id });
+      }
+    }
+  } catch (e) { console.error('concept cleanup failed:', e.message); }
   await Chunk.deleteMany({ material: mat._id });
   await Job.deleteMany({ refId: mat._id });
   await Material.deleteOne({ _id: mat._id });

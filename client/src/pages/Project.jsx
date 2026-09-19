@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { UploadCloud, MessagesSquare, MessageCircle, ListChecks, TrendingUp, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2, Layers, RotateCcw, ThumbsUp, ThumbsDown, Wand2, Home as HomeIcon, LayoutDashboard } from 'lucide-react';
+import { UploadCloud, MessagesSquare, ListChecks, BarChart3, CheckCircle2, Circle, Bot, User as UserIcon, Send, Sparkles, BookOpen, Folder, Target, FileText, Trash2, Layers, Home as HomeIcon, LayoutDashboard, PenLine } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts';
 import MathText from '../components/MathText.jsx';
 import { Skel, TextLines, ChatThread, ListRows, PageSkeleton } from '../components/Shimmer.jsx';
@@ -15,17 +15,19 @@ const STEPS = [
   { id: 'tutor', n: 3, label: 'AI Tutor', icon: MessagesSquare, hint: 'Ask, get cited answers' },
   { id: 'concepts', n: 4, label: 'Concepts', icon: BookOpen, hint: 'Divided by material' },
   { id: 'quiz', n: 5, label: 'Quiz', icon: ListChecks, hint: 'MCQ + open-ended' },
-  { id: 'dashboard', n: 6, label: 'Dashboard', icon: LayoutDashboard, hint: 'This project only' },
-  { id: 'analytics', n: 7, label: 'Analytics', icon: BarChart3, hint: 'This project only' },
+  { id: 'practice', n: 6, label: 'Practice', icon: PenLine, hint: 'Exam-style paper' },
+  { id: 'dashboard', n: 7, label: 'Dashboard', icon: LayoutDashboard, hint: 'This project only' },
+  { id: 'analytics', n: 8, label: 'Analytics', icon: BarChart3, hint: 'This project only' },
 ];
 
 // Sidebar nav (mobile): per-project tools only — dashboard/analytics are project-scoped
 const SIDEBAR_NAV = [
   { id: 'overview', label: 'Overview', icon: HomeIcon },
   { id: 'materials', label: 'Materials', icon: Folder },
-  { id: 'tutor', label: 'AI Tutor', icon: MessagesSquare, badge: 'AI' },
+  { id: 'tutor', label: 'AI Tutor', icon: MessagesSquare },
   { id: 'concepts', label: 'Concepts', icon: BookOpen },
   { id: 'quiz', label: 'Quiz', icon: Target },
+  { id: 'practice', label: 'Practice', icon: PenLine },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
@@ -36,6 +38,7 @@ const TAB_LABEL = {
   materials: 'Materials',
   concepts: 'Concepts',
   quiz: 'Quiz',
+  practice: 'Practice',
   assignments: 'Assignments',
   growth: 'Growth',
   dashboard: 'Dashboard',
@@ -94,7 +97,6 @@ export default function Project() {
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [chatsCollapsed, setChatsCollapsed] = useState(false);
   const chatBoxRef = useRef(null);
-  const quizBoxRef = useRef(null);
   const [questions, setQuestions] = useState([]);
   const [mastery, setMastery] = useState([]);
   const [concepts, setConcepts] = useState([]);
@@ -107,6 +109,13 @@ export default function Project() {
   const [startingQuiz, setStartingQuiz] = useState(false);
   // Inline flashcard widgets inside the Quiz thread (deck counts stay in sync)
   const [quizCardWidgets, setQuizCardWidgets] = useState([]);
+  // Practice assignment paper state (declared up-front: `done` below reads it)
+  const [pCount, setPCount] = useState(5);
+  const [pDifficulty, setPDifficulty] = useState('mixed');
+  const [pTypes, setPTypes] = useState(['mcq', 'tf', 'short', 'open']);
+  const [pQuestions, setPQuestions] = useState([]);
+  const [pStarting, setPStarting] = useState(false);
+  const [pTip, setPTip] = useState('');
   // Quiz setup (count / timer / topics) like a full quiz lobby
   const [quizCount, setQuizCount] = useState(4);
   const [quizTimer, setQuizTimer] = useState(0);
@@ -137,15 +146,13 @@ export default function Project() {
     chatBoxRef.current?.scrollTo({ top: chatBoxRef.current.scrollHeight, behavior: 'smooth' });
   }, [chat, asking, tab, tutorQuizzes, tutorCards]);
 
-  useEffect(() => {
-    quizBoxRef.current?.scrollTo({ top: quizBoxRef.current.scrollHeight, behavior: 'smooth' });
-  }, [questions, quizNotes, tab]);
-
-  // Tutor + Quiz: freeze page scroll, inner panes scroll instead (like screenshot).
+  // Tutor: freeze page scroll, inner panes scroll instead (like screenshot).
+  // Quiz stays a normal scrolling page (setup + history + rounds are long) —
+  // locking body overflow here is what froze scrolling on the quiz tab.
   // Reset window scroll on entry — otherwise a leftover scroll offset from the
   // previous tab freezes the pane shifted up under the navbar.
   useEffect(() => {
-    if (tab !== 'tutor' && tab !== 'quiz') return;
+    if (tab !== 'tutor') return;
     window.scrollTo(0, 0);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -258,6 +265,7 @@ export default function Project() {
     tutor: chat.length > 0,
     concepts: mastery.length > 0,
     quiz: questions.length > 0 || (analytics?.attempts || 0) > 0,
+    practice: pQuestions.length > 0,
     assignments: (analytics?.recentAttempts || []).length > 0,
     growth: growth.length > 0,
     dashboard: (analytics?.attempts || 0) > 0,
@@ -313,10 +321,10 @@ export default function Project() {
     await sendText(q);
   }
 
-  async function sendText(text) {
+  async function sendText(text, sessOverride) {
     if (!text.trim() || asking) return;
     const qq = text;
-    const sess = activeSession || 'default';
+    const sess = sessOverride || activeSession || 'default';
     setQ('');
     setAsking(true);
     setChat((c) => [...c, { role: 'user', text: qq }]);
@@ -344,6 +352,24 @@ export default function Project() {
     setChat([]);
     setQ('');
     scrollChatEnd();
+  }
+
+  // Quiz → Tutor handoff: open a NEW chat and send a quiz-prep question that
+  // mentions the current topic selection, so the tutor answers in quiz context.
+  function askTutorAboutQuiz() {
+    if (asking) return;
+    const pool = buildTopicPool();
+    const focus = pool && pool.length ? pool.slice(0, 5).join(', ') : null;
+    const weak = mastery.filter((m) => m.score < 60).slice(0, 3).map((m) => `${m.concept} (${m.score}%)`);
+    const sid = `s_${Date.now().toString(36)}`;
+    setActiveSession(sid);
+    setChat([]);
+    setQ('');
+    goTab('tutor');
+    const msg = focus
+      ? `I'm about to take a quiz on ${focus}${weak.length ? ` — my weakest spots are ${weak.join(', ')}` : ''}. What are the key ideas I must know? Teach me briefly with one example each from my PDFs.`
+      : `I'm about to take a quiz on this project's materials. What are the key ideas I must know? Teach me briefly with one example each from my PDFs.`;
+    setTimeout(() => sendText(msg, sid), 300);
   }
 
   async function openSession(sid) {
@@ -535,6 +561,21 @@ export default function Project() {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return sameDay ? 'Today' : `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]}`;
   }
+  // Topics selection narrows the adaptive pool (still weakest-first inside it)
+  function buildTopicPool() {
+    if (pickedTopics.length) return pickedTopics;
+    if (topicMode === 'weak') {
+      const weak = mastery.filter((m) => m.score < 60).map((m) => m.concept);
+      if (weak.length) return weak;
+    }
+    if (topicMode === 'untested') {
+      const known = new Set(mastery.map((m) => m.concept));
+      const fresh = (concepts.length ? concepts.map((c) => c.name) : []).filter((n) => !known.has(n));
+      if (fresh.length) return fresh;
+    }
+    return null;
+  }
+
   async function startQuiz(count = quizCount, concept = null) {
     setStartingQuiz(true);
     setRoundExpired(false);
@@ -544,17 +585,8 @@ export default function Project() {
       if (concept) {
         body.concept = concept;
       } else {
-        // Topics selection narrows the adaptive pool (still weakest-first inside it)
-        let pool = null;
-        if (pickedTopics.length) {
-          pool = pickedTopics;
-        } else if (topicMode === 'weak') {
-          pool = mastery.filter((m) => m.score < 60).map((m) => m.concept);
-        } else if (topicMode === 'untested') {
-          const known = new Set(mastery.map((m) => m.concept));
-          pool = (concepts.length ? concepts.map((c) => c.name) : []).filter((n) => !known.has(n));
-        }
-        if (pool && pool.length) body.concepts = pool;
+        const pool = buildTopicPool();
+        if (pool) body.concepts = pool;
       }
       const { data } = await api.post(`/api/projects/${id}/quiz/start`, body);
       const qs = data.questions.map((x) => ({ ...x, answer: '', result: null }));
@@ -585,119 +617,101 @@ export default function Project() {
     return `${m}:${r}`;
   }
 
-  async function answer(x, overrideText) {
-    if (roundExpired) return;
+  async function gradeAndRecord(setQs, x, overrideText, source = 'quiz') {
     const text = (overrideText ?? x.answer ?? '').trim();
     if (!text || answeringId) return;
     setAnsweringId(x.id);
     // optimistic: show the typed answer immediately in the thread
-    setQuestions((qs) => qs.map((y) => (y.id === x.id ? { ...y, answer: text } : y)));
+    setQs((qs) => qs.map((y) => (y.id === x.id ? { ...y, answer: text } : y)));
     try {
-      const { data } = await api.post(`/api/quiz/${x.id}/answer`, { answer: text });
-      setQuestions((qs) => qs.map((y) => (y.id === x.id ? { ...y, answer: text, result: data } : y)));
+      const { data } = await api.post(`/api/quiz/${x.id}/answer`, { answer: text, source });
+      setQs((qs) => qs.map((y) => (y.id === x.id ? { ...y, answer: text, result: data } : y)));
     } catch (err) {
-      setQuestions((qs) => qs.map((y) => (y.id === x.id ? { ...y, result: { score: 0, feedback: { text: err.response?.data?.error || 'Grading failed — try again.' } } } : y)));
+      setQs((qs) => qs.map((y) => (y.id === x.id ? { ...y, result: { score: 0, feedback: { text: err.response?.data?.error || 'Grading failed — try again.' } } } : y)));
     } finally {
       setAnsweringId(null);
       refreshStats();
     }
   }
 
-  function submitActiveQuiz(e) {
-    e?.preventDefault();
-    const active = questions.find((v) => v.id === activeQuizId) || questions[0];
-    if (!active || !quizInput.trim()) return;
-    answer(active, quizInput);
-    setQuizInput('');
+  async function answer(x, overrideText) {
+    if (roundExpired) return;
+    return gradeAndRecord(setQuestions, x, overrideText, 'quiz');
   }
 
-  // Bottom action row (one line, like the tutor empty-state): every action is
-  // built from THIS quiz chat only — active concept, covered concepts, scores.
-  const QUIZ_CHIPS = [
-    { label: 'Summarize', icon: FileText },
-    { label: 'Deep Dive', icon: BookOpen },
-    { label: 'Generate Quiz', icon: ListChecks },
-    { label: 'Create Flashcards', icon: Layers },
-    { label: 'Practice', icon: Target },
-  ];
-
-  function activeQuiz() {
-    return questions.find((v) => v.id === activeQuizId) || questions[0] || null;
+  async function answerPaper(x, overrideText) {
+    return gradeAndRecord(setPQuestions, x, overrideText, 'practice');
   }
 
-  function summarizeChat() {
-    if (!questions.length) return;
-    const answered = questions.filter((v) => v.result);
-    const byConcept = {};
-    for (const v of questions) {
-      (byConcept[v.concept] ||= { total: 0, done: 0, sum: 0 });
-      byConcept[v.concept].total += 1;
-      if (v.result) { byConcept[v.concept].done += 1; byConcept[v.concept].sum += v.result.score || 0; }
-    }
-    const lines = Object.entries(byConcept).map(([c, s]) =>
-      `• ${c}: ${s.done}/${s.total} answered${s.done ? `, avg ${Math.round(s.sum / s.done)}%` : ''}`
-    );
-    const weak = Object.entries(byConcept)
-      .filter(([, s]) => s.done)
-      .sort((a, b) => (a[1].sum / a[1].done) - (b[1].sum / b[1].done))[0];
-    const text = [
-      `Session summary — ${questions.length} questions, ${answered.length} answered.`,
-      ...lines,
-      weak
-        ? `Weakest in this chat: ${weak[0]} (${Math.round(weak[1].sum / weak[1].done)}%). Revise it, then hit Practice.`
-        : `Answer the questions above, then hit Practice to drill the weakest one.`,
-    ].join('\n');
-    setQuizNotes((n) => [...n, { id: `n${Date.now()}`, text }]);
+  // ---- Practice assignment (exam-style paper) ----
+  const TYPE_META = {
+    mcq: { label: 'Multiple choice', tag: 'instant', desc: 'Section A · 4 options' },
+    tf: { label: 'True / False', tag: 'instant', desc: 'Section A · statement check' },
+    short: { label: 'One word', tag: 'instant', desc: 'Section B · short answer' },
+    open: { label: 'Open ended', tag: 'AI graded', desc: 'Section C · descriptive, AI graded' },
+  };
+
+  function sectionOf(t) {
+    return t === 'mcq' || t === 'tf' ? 'Section A' : t === 'short' ? 'Section B' : 'Section C';
   }
 
-  function quizChipAction(chip) {
-    const active = activeQuiz();
-    const concept = active?.concept || adaptive?.weak?.[0]?.concept || '';
-    if (chip === 'Summarize') return summarizeChat();
-    if (chip === 'Generate Quiz') return startQuiz(4);
-    if (chip === 'Practice') return startQuiz(4, concept || undefined);
-    if (chip === 'Create Flashcards') {
-      if (concept) generateFlashcards(concept);
-      goTab('flashcards');
-      return;
-    }
-    if (chip === 'Deep Dive') {
-      const topic = concept || 'this concept';
-      goTab('tutor');
-      setTimeout(() => sendText(`Explain ${topic} deeply, step by step, with examples from my PDFs`), 300);
-    }
+  function togglePType(t) {
+    setPTypes((p) => {
+      const next = p.includes(t) ? p.filter((x) => x !== t) : [...p, t];
+      return next.length ? next : p;
+    });
   }
 
-  async function generateFlashcards(focusConcept) {
-    setGenCards(true);
-    setReviewMsg('');
+  async function startPaper() {
+    if (!pTypes.length) return;
+    setPStarting(true);
     try {
-      const body = { count: 8 };
-      if (focusConcept) body.concept = focusConcept;
+      const body = { count: Math.max(1, Math.min(pCount, 12)), qtypes: pTypes };
+      const pool = buildTopicPool();
+      if (pool) body.concepts = pool;
+      if (pDifficulty !== 'mixed') body.difficulty = pDifficulty;
+      const { data } = await api.post(`/api/projects/${id}/quiz/start`, body);
+      setPQuestions((data.questions || []).map((x) => ({ ...x, answer: '', result: null })));
+      setPTip(data.adaptive?.tip || '');
+      setTimeout(() => document.getElementById('practice-paper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    } finally {
+      setPStarting(false);
+    }
+  }
+
+  // (quiz chips were replaced by the setup-card layout above)
+
+  // Inline flashcard widgets inside the Quiz thread
+  async function openQuizCards(concept) {
+    setGenCards(true);
+    try {
+      const body = { count: 6 };
+      if (concept) body.concept = concept;
       const { data } = await api.post(`/api/projects/${id}/flashcards/generate`, body);
       await loadFlashcards();
-      setReviewMsg(data.adaptive?.reason ? `Generated ${data.cards?.length || 0} cards — ${data.adaptive.reason}: ${(data.adaptive.focus || []).join(', ')}` : `Generated ${data.cards?.length || 0} cards.`);
+      setQuizCardWidgets((w) => [...w, {
+        key: `qc${Date.now()}`,
+        concept: concept || (data.adaptive?.focus || [])[0] || 'Adaptive',
+        cards: (data.cards || []).map((c) => ({ ...c, flipped: false, reviewed: null, msg: '' })),
+      }]);
       refreshStats();
-    } catch (err) {
-      setReviewMsg(err.response?.data?.error || 'Card generation failed — try again.');
     } finally {
       setGenCards(false);
     }
   }
 
-  async function reviewCard(card, known) {
-    setReviewMsg('');
+  async function reviewQuizCard(wkey, cardId, known) {
     try {
-      const { data } = await api.post(`/api/flashcards/${card._id}/review`, { known });
-      setReviewMsg(data.adaptive?.suggestion || (known ? 'Marked known.' : 'Marked for review.'));
-      setFlipped(false);
-      setCardIdx((i) => (cards.length ? (i + 1) % cards.length : 0));
+      const { data } = await api.post(`/api/flashcards/${cardId}/review`, { known });
+      setQuizCardWidgets((ws) => ws.map((w) => w.key === wkey
+        ? { ...w, cards: w.cards.map((c) => c._id === cardId ? { ...c, reviewed: known, msg: data.adaptive?.suggestion || '' } : c) }
+        : w));
       refreshStats();
-      // refresh ordering in background so weak/unknown bubble first
-      loadFlashcards();
-    } catch (err) {
-      setReviewMsg(err.response?.data?.error || 'Review failed — try again.');
-    }
+    } catch {}
+  }
+
+  async function generateFlashcards(focusConcept) {
+    return openQuizCards(focusConcept);
   }
 
   if (!project) return <div className="theme-dashboard min-h-screen"><PageSkeleton /></div>;
@@ -750,82 +764,197 @@ export default function Project() {
       {/* Main content — tutor goes edge-to-edge with zero padding */}
       <div className={tab === 'tutor' ? '' : 'container pt-6'}>
         <div className={tab === 'tutor' ? '' : 'mt-3'}>
-          {/* Adaptive recommendations — everywhere except overview/growth (own card), tutor (own chips), materials (clean upload view) and concepts (grouped view) */}
-          {tab !== 'overview' && tab !== 'growth' && tab !== 'tutor' && tab !== 'materials' && tab !== 'concepts' && (
+          {/* Adaptive recommendations — everywhere except overview/growth (own card), tutor (own chips), materials (clean upload view), concepts (grouped view), quiz + practice (clean setup view), dashboard (own next-step card) */}
+          {tab !== 'overview' && tab !== 'growth' && tab !== 'tutor' && tab !== 'materials' && tab !== 'concepts' && tab !== 'quiz' && tab !== 'practice' && tab !== 'dashboard' && (
             <div className="mb-4"><AdaptiveBanner adaptive={adaptive} rec={rec} onGo={goTab} /></div>
           )}
-          {tab === 'overview' && (
-          <div className="grid-4 fade-up-2">
-            <div className="card"><p className="label">Concepts</p><p className="font-heading text-3xl font-extrabold">{mastery.length}</p></div>
-            <div className="card"><p className="label">Quiz attempts</p><p className="font-heading text-3xl font-extrabold">{analytics?.attempts ?? 0}</p></div>
-            <div className="card"><p className="label">Avg score</p><p className="font-heading text-3xl font-extrabold">{analytics?.avgScore ?? 0}%</p></div>
-            <div className="card"><p className="label">Current section</p><p className="font-heading text-lg font-bold">{TAB_LABEL[tab] || tab}</p></div>
-          </div>
-          )}
-
-          {tab === 'overview' && (
-            <div className="mt-4 space-y-4">
-              <div className="card fade-up">
-                <h2 className="font-heading text-lg font-bold">Where you stand</h2>
-                <div className="mt-2 grid gap-3 sm:grid-cols-3">
-                  <div><p className="label">Avg mastery</p><p className="font-heading text-2xl font-extrabold">{avg}%</p></div>
-                  <div><p className="label">Quiz attempts</p><p className="font-heading text-2xl font-extrabold">{analytics?.attempts ?? 0}</p></div>
-                  <div><p className="label">Avg score</p><p className="font-heading text-2xl font-extrabold">{analytics?.avgScore ?? 0}%</p></div>
+          {tab === 'overview' && (() => {
+            const C = 2 * Math.PI * 30;
+            return (
+            <div className="fade-up relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#4f46e5] via-[#6d28d9] to-[#0ea5e9] p-6 text-white">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/15 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-black/20 blur-2xl" />
+              <div className="relative flex flex-wrap items-center gap-5">
+                <div className="relative h-[84px] w-[84px] shrink-0" title={`Average mastery ${avg}%`}>
+                  <svg width="84" height="84" className="-rotate-90">
+                    <circle cx="42" cy="42" r="30" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="9" />
+                    <circle cx="42" cy="42" r="30" fill="none" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C - (C * (avg || 0)) / 100} />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center font-heading text-lg font-extrabold">{avg}%</span>
                 </div>
-              </div>
-              <div className="card">
-                <h3 className="font-heading font-bold">Learning path</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {STEPS.map((s) => (
-                    <button key={s.id} onClick={() => goTab(s.id)} className="btn btn-outline !py-1.5 !text-xs">{s.label}</button>
-                  ))}
-                  <button onClick={() => goTab('concepts')} className="btn btn-outline !py-1.5 !text-xs">Concepts</button>
-                  <button onClick={() => goTab('growth')} className="btn btn-outline !py-1.5 !text-xs">Growth</button>
-                  <button onClick={() => goTab('assignments')} className="btn btn-outline !py-1.5 !text-xs">Assignments</button>
-                </div>
-              </div>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="card">
-                  <h3 className="font-heading font-bold">Important concepts</h3>
-                  <div className="mt-2 space-y-1 text-sm">
-                    {mastery.slice().sort((a, b) => a.score - b.score).slice(0, 3).map((m) => (
-                      <p key={m.concept}>{m.concept}: <b>{m.score}%</b></p>
-                    ))}
-                    {!mastery.length && <p className="text-sm text-text3">No concepts yet — upload material.</p>}
-                  </div>
-                  <button onClick={() => goTab('quiz')} className="btn btn-outline mt-2 !py-1.5 !text-xs">Practice → Quiz</button>
-                </div>
-                <div className="card">
-                  <h3 className="font-heading font-bold">Recent activity</h3>
-                  <div className="mt-2 space-y-1 text-xs text-text2">
-                    {(analytics?.events || []).slice(0, 5).map((e, i) => (
-                      <p key={i}><b>{e.type}</b> · {new Date(e.at || e.createdAt).toLocaleString()}</p>
-                    ))}
-                    {!(analytics?.events || []).length && <p className="text-sm text-text3">Nothing yet.</p>}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/75">Project overview · avg mastery</p>
+                  <h1 className="font-heading truncate text-2xl font-extrabold">{project?.name || 'Project'}</h1>
+                  {!!project?.goal && <p className="truncate text-sm text-white/85"><b>Goal:</b> {project.goal}</p>}
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/85">
+                    <span><b className="font-extrabold text-white">{materials.length}</b> materials</span>
+                    <span><b className="font-extrabold text-white">{mastery.length}</b> concepts</span>
+                    <span><b className="font-extrabold text-white">{analytics?.attempts ?? 0}</b> attempts</span>
+                    <span><b className="font-extrabold text-white">{analytics?.avgScore ?? 0}%</b> avg score</span>
+                    <span><b className="font-extrabold text-white">{sessions.length}</b> tutor chats</span>
                   </div>
                 </div>
-              </div>
-              <div className="card">
-                <h3 className="font-heading font-bold">Recommended next step <span className="badge badge-info ml-1">Adaptive</span></h3>
-                <p className="alert alert-success mt-2">{adaptive?.current?.text || rec?.text || 'Upload material, then ask the Tutor.'}</p>
-                {!!adaptive?.actions?.length && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {adaptive.actions.map((a, i) => (
-                      <button key={i} onClick={() => goTab(a.tab)} title={a.detail || a.label} className="btn btn-outline !py-1.5 !text-xs">{a.label} →</button>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button onClick={() => goTab('materials')} className="btn btn-outline !py-1.5 !text-xs">Materials</button>
-                  <button onClick={() => goTab('tutor')} className="btn btn-outline !py-1.5 !text-xs">Tutor</button>
-                  <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Adaptive Quiz</button>
-                  <button onClick={() => goTab('flashcards')} className="btn btn-outline !py-1.5 !text-xs">Flashcards{adaptive?.dueCards ? ` (${adaptive.dueCards} due)` : ''}</button>
-                  <button onClick={() => goTab('dashboard')} className="btn btn-outline !py-1.5 !text-xs">Dashboard</button>
-                  <button onClick={() => goTab('analytics')} className="btn btn-outline !py-1.5 !text-xs">Analytics</button>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => goTab('tutor')} className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-sm font-bold text-[#4f46e5] transition hover:bg-white/90"><MessagesSquare size={15} /> Ask Tutor</button>
+                  <button onClick={() => goTab('quiz')} className="inline-flex items-center gap-1.5 rounded-xl border border-white/50 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-white/10"><ListChecks size={15} /> Take Quiz</button>
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
+
+          {tab === 'overview' && (() => {
+            const attempts = analytics?.recentAttempts || [];
+            const quizN = attempts.filter((a) => (a.source || 'quiz') !== 'practice').length;
+            const practiceN = attempts.filter((a) => a.source === 'practice').length;
+            const sorted = mastery.slice().sort((a, b) => a.score - b.score);
+            const weakest3 = sorted.slice(0, 3);
+            const nextText = adaptive?.current?.text || rec?.text;
+            const steps = [
+              { label: 'Materials', tab: 'materials', sub: materials.length ? `${materials.length} PDF${materials.length > 1 ? 's' : ''}` : 'Upload a PDF', done: materials.length > 0 },
+              { label: 'Tutor', tab: 'tutor', sub: sessions.length ? `${sessions.length} chat${sessions.length > 1 ? 's' : ''}` : 'Ask anything', done: sessions.length > 0 },
+              { label: 'Quiz', tab: 'quiz', sub: quizN ? `${quizN} attempt${quizN > 1 ? 's' : ''}` : 'Test yourself', done: quizN > 0 },
+              { label: 'Practice', tab: 'practice', sub: practiceN ? `${practiceN} paper${practiceN > 1 ? 's' : ''}` : 'Exam mode', done: practiceN > 0 },
+              { label: 'Mastery', tab: 'dashboard', sub: mastery.length ? `${avg}% avg` : 'No scores yet', done: mastery.length > 0 },
+              { label: 'Growth', tab: 'growth', sub: growth.length ? 'Tracking' : 'No history', done: growth.length > 0 },
+              { label: 'Next step', tab: adaptive?.actions?.[0]?.tab || 'quiz', sub: nextText ? 'Ready for you' : 'Do any task', done: !!nextText },
+            ];
+            const doneCount = steps.filter((s) => s.done).length;
+            const curIdx = steps.findIndex((s) => !s.done);
+            const browse = [
+              { label: 'Materials', desc: 'Upload and manage PDF materials', tab: 'materials', Icon: UploadCloud },
+              { label: 'Tutor', desc: 'Ask questions about your materials', tab: 'tutor', Icon: MessagesSquare },
+              { label: 'Concepts', desc: 'Grouped by material, weakest first', tab: 'concepts', Icon: BookOpen },
+              { label: 'Quiz', desc: 'Adaptive MCQs from your weak spots', tab: 'quiz', Icon: ListChecks },
+              { label: 'Practice', desc: 'Exam-style papers with sections', tab: 'practice', Icon: PenLine },
+              { label: 'Dashboard', desc: 'Mastery snapshot for this project', tab: 'dashboard', Icon: LayoutDashboard },
+            ];
+            const barColor = (s) => (s < 60 ? 'bg-red-500' : s < 80 ? 'bg-amber-500' : 'bg-green-500');
+            return (
+            <div className="mt-4 space-y-4">
+              {/* Journey path — where you are in the loop, what comes next */}
+              <div className="card fade-up">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-heading font-bold">Your learning journey</h3>
+                  <span className="badge badge-info">{doneCount}/7 complete</span>
+                </div>
+                <div className="mt-3 flex items-stretch gap-0.5 overflow-x-auto pb-1">
+                  {steps.map((s, i) => (
+                    <div key={s.label} className="flex min-w-[118px] flex-1 items-stretch">
+                      <button onClick={() => goTab(s.tab)} title={`${s.label}: ${s.sub}`} className={`flex-1 rounded-2xl border p-2.5 text-left transition ${i === curIdx ? 'border-accent bg-accent/[0.07] shadow-sm' : s.done ? 'border-green-200 bg-green-50/60 dark:border-green-900 dark:bg-green-950/30' : 'border-border bg-bg3 hover:border-accent'}`}>
+                        <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-extrabold ${s.done ? 'bg-green-500 text-white' : i === curIdx ? 'bg-accent text-white' : 'bg-surface text-text3'}`}>{s.done ? '✓' : i + 1}</span>
+                        <p className="mt-1.5 text-[13px] font-bold leading-tight">{s.label}</p>
+                        <p className="truncate text-[11px] text-text3">{s.sub}</p>
+                        {i === curIdx && <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">◉ start here</p>}
+                      </button>
+                      {i < steps.length - 1 && <span className="mx-0.5 self-center text-sm text-text3">→</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="space-y-4 lg:col-span-2">
+                  {/* Mastery bars */}
+                  <div className="card fade-up">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-heading font-bold">Mastery by concept</h3>
+                      <span className="text-xs text-text3">{mastery.length} tracked · avg {avg}%</span>
+                    </div>
+                    {mastery.length ? (
+                      <div className="mt-3 space-y-2.5">
+                        {sorted.slice(0, 8).map((m) => (
+                          <div key={m.concept}>
+                            <div className="flex items-center justify-between gap-2 text-xs"><span className="truncate font-semibold">{m.concept}</span><span className="shrink-0 text-text3">{m.score}% · {m.mistakes}✕</span></div>
+                            <div className="mt-1 h-2 rounded-full bg-surface"><div className={`h-2 rounded-full ${barColor(m.score)}`} style={{ width: `${m.score}%` }} /></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm text-text3">No scores yet — take a quiz to light up this chart.</p>
+                        <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Take Quiz →</button>
+                      </div>
+                    )}
+                  </div>
+                  {/* Weakest spotlight */}
+                  <div className="card fade-up">
+                    <h3 className="font-heading font-bold">Needs your attention <span className="text-xs font-normal text-text3">weakest concepts first</span></h3>
+                    {weakest3.length ? (
+                      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                        {weakest3.map((m) => (
+                          <div key={m.concept} className="rounded-2xl border border-border bg-bg3 p-3">
+                            <p className="truncate text-sm font-bold" title={m.concept}>{m.concept}</p>
+                            <p className="mt-0.5 text-xs text-text3">{m.score}% mastery · {m.mistakes} mistakes</p>
+                            <div className="mt-1 h-1.5 rounded-full bg-surface"><div className={`h-1.5 rounded-full ${barColor(m.score)}`} style={{ width: `${m.score}%` }} /></div>
+                            <div className="mt-2 flex flex-wrap gap-x-2.5 gap-y-1">
+                              <button onClick={() => goTab('quiz')} className="text-[11px] font-bold text-accent hover:underline">Quiz →</button>
+                              <button onClick={() => { startQuiz(4, m.concept); goTab('quiz'); }} className="text-[11px] font-bold text-accent hover:underline">Drill →</button>
+                              <button onClick={() => { goTab('tutor'); setTimeout(() => sendText(`Explain ${m.concept} simply with one example from my PDFs`), 300); }} className="text-[11px] font-bold text-accent hover:underline">Ask tutor →</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="mt-2 text-sm text-text3">Upload material and take a quiz — weak spots appear here.</p>}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {/* Next step */}
+                  <div className="card fade-up !border-accent/30 !bg-accent/[0.05]">
+                    <h3 className="font-heading flex items-center gap-1.5 font-bold"><Sparkles size={15} className="text-accent" /> Recommended next step</h3>
+                    <p className="mt-1.5 text-sm font-medium">{nextText || 'Upload material, then ask the Tutor.'}</p>
+                    {!!adaptive?.actions?.length && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {adaptive.actions.map((a, i) => (
+                          <button key={i} onClick={() => goTab(a.tab)} title={a.detail || a.label} className="btn btn-outline !py-1.5 !text-xs">{a.label} →</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {!materials.length && (
+                    <div className="card fade-up">
+                      <h3 className="flex items-center gap-1.5 font-heading font-bold"><BookOpen size={16} className="text-accent" /> Get started</h3>
+                      <p className="mt-1 text-sm text-text2">Upload a PDF to build your knowledge base, then ask the Tutor and take a quiz — weak spots will surface here.</p>
+                      <button onClick={() => goTab('materials')} className="btn btn-primary mt-2 w-full !py-2 !text-xs">Upload material →</button>
+                    </div>
+                  )}
+                  {/* Activity timeline */}
+                  <div className="card fade-up">
+                    <h3 className="font-heading font-bold">Recent activity</h3>
+                    <div className="mt-2 space-y-0">
+                      {(analytics?.events || []).slice(0, 6).map((e, i, arr) => (
+                        <div key={i} className="flex gap-2.5">
+                          <div className="flex flex-col items-center">
+                            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
+                            {i < arr.length - 1 && <span className="w-px flex-1 bg-border" />}
+                          </div>
+                          <div className="pb-3">
+                            <p className="text-xs font-bold">{e.type}</p>
+                            <p className="text-[11px] text-text3">{new Date(e.at || e.createdAt).toLocaleString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {!(analytics?.events || []).length && <p className="text-sm text-text3">Nothing yet — your actions appear here.</p>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="label !mb-2 !text-xs !font-bold !uppercase !tracking-widest">Browse everything</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {browse.map((b) => (
+                    <button key={b.label} onClick={() => goTab(b.tab)} className="card fade-up group flex items-start gap-3 !p-4 text-left transition hover:border-accent">
+                      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent"><b.Icon size={19} /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center justify-between gap-2 font-heading text-[15px] font-bold">{b.label}<span className="text-text3 transition group-hover:translate-x-0.5 group-hover:text-accent">→</span></span>
+                        <span className="mt-0.5 block truncate text-xs text-text2">{b.desc}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            );
+          })()}
 
           {tab === 'materials' && (
             <form onSubmit={upload} className="card fade-up mt-4">
@@ -924,7 +1053,7 @@ export default function Project() {
                         <div className="mt-1 flex flex-wrap gap-2">
                           <button onClick={() => { sendText(`Explain ${m.name} simply with one example from my PDFs`); goTab('tutor'); }} className="text-[11px] font-semibold text-accent hover:underline">Ask tutor →</button>
                           <button onClick={() => goTab('quiz')} className="text-[11px] font-semibold text-accent hover:underline">Quiz →</button>
-                          <button onClick={() => { generateFlashcards(m.name); goTab('flashcards'); }} className="text-[11px] font-semibold text-accent hover:underline">Drill cards →</button>
+                          <button onClick={() => { startQuiz(4, m.name); goTab('quiz'); }} className="text-[11px] font-semibold text-accent hover:underline">Practice →</button>
                         </div>
                       </div>
                     ))}
@@ -935,7 +1064,7 @@ export default function Project() {
               {!!concepts.length && (
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Adaptive quiz →</button>
-                  <button onClick={() => goTab('flashcards')} className="btn btn-outline !py-1.5 !text-xs">Flashcards →</button>
+                  <button onClick={() => goTab('tutor')} className="btn btn-outline !py-1.5 !text-xs">Ask tutor →</button>
                 </div>
               )}
             </div>
@@ -1222,7 +1351,7 @@ export default function Project() {
             const knownSet = new Set(mastery.map((m) => m.concept));
             const untestedList = topicNames.filter((n) => !knownSet.has(n));
             const answered = questions.filter((v) => v.result).length;
-            const history = (analytics?.recentAttempts || []).slice().reverse();
+            const history = (analytics?.recentAttempts || []).filter((a) => (a.source || 'quiz') !== 'practice').slice().reverse();
             const toggleTopic = (n) => {
               setPickedTopics((p) => p.includes(n) ? p.filter((t) => t !== n) : [...p, n]);
             };
@@ -1251,7 +1380,7 @@ export default function Project() {
                         <option value={20}>20 min</option>
                       </select>
                       <button onClick={() => startQuiz()} disabled={startingQuiz} className="btn btn-primary">{startingQuiz ? 'Starting…' : 'Start quiz'}</button>
-                      <button onClick={() => goTab('tutor')} className="btn btn-outline">Ask tutor first</button>
+                      <button onClick={askTutorAboutQuiz} className="btn btn-outline">Ask tutor first</button>
                       {timeLeft != null && !roundExpired && <span className="badge badge-info">⏱ {fmtClock(timeLeft)}</span>}
                       {roundExpired && <span className="badge badge-high">Time&apos;s up — start a new round</span>}
                     </div>
@@ -1298,7 +1427,7 @@ export default function Project() {
               )}
 
               {!!questions.length && !startingQuiz && (
-                <div className="space-y-3">
+                <div id="quiz-round" className="space-y-3">
                   <p className="flex items-center justify-between text-sm font-bold">This round <span className="text-xs font-normal text-text3">{answered}/{questions.length} answered</span></p>
                   {roundExpired && <p className="alert alert-error !mb-0">⏱ Time&apos;s up for this round — answers are locked. Start a new round above.</p>}
                   {questions.map((x) => (
@@ -1334,7 +1463,7 @@ export default function Project() {
                           {!!x.result.adaptive?.recommendation && <p className="text-xs text-text2">💡 {x.result.adaptive.recommendation}</p>}
                           <div className="flex flex-wrap gap-1.5">
                             {!!x.result.adaptive?.flashcardConcept && (
-                              <button onClick={() => { generateFlashcards(x.result.adaptive.flashcardConcept); goTab('flashcards'); }} className="btn btn-outline !py-1 !text-xs">Drill {x.result.adaptive.flashcardConcept} cards →</button>
+                              <button onClick={() => { generateFlashcards(x.result.adaptive.flashcardConcept); }} className="btn btn-outline !py-1 !text-xs">Drill {x.result.adaptive.flashcardConcept} cards →</button>
                             )}
                             <button onClick={() => goTab('tutor')} className="btn btn-outline !py-1 !text-xs">Ask Tutor →</button>
                           </div>
@@ -1344,6 +1473,39 @@ export default function Project() {
                   ))}
                 </div>
               )}
+
+              {genCards && !quizCardWidgets.length && (
+                <div className="card">
+                  <Skel className="h-4 w-48" />
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    {[0, 1].map((i) => <Skel key={i} className="h-20 w-full !rounded-xl" />)}
+                  </div>
+                </div>
+              )}
+
+              {quizCardWidgets.map((w) => (
+                <div key={w.key} className="card !border-accent/30">
+                  <p className="font-heading font-bold">Flashcards · {w.concept}</p>
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
+                    {w.cards.map((c) => (
+                      <div key={c._id} className="rounded-xl border border-border bg-bg3 p-3">
+                        <button onClick={() => setQuizCardWidgets((ws) => ws.map((v) => v.key === w.key ? { ...v, cards: v.cards.map((k) => k._id === c._id ? { ...k, flipped: !k.flipped } : k) } : v))} className="w-full text-left text-sm font-semibold">
+                          {c.flipped ? c.back : c.front}
+                        </button>
+                        <p className="mt-0.5 text-[11px] text-text3">{c.flipped ? 'Answer — tap to flip back' : 'Tap to reveal'}</p>
+                        {c.reviewed == null ? (
+                          <div className="mt-1.5 flex gap-1.5">
+                            <button onClick={() => reviewQuizCard(w.key, c._id, false)} className="btn btn-outline !px-2 !py-1 !text-[11px]">Still learning</button>
+                            <button onClick={() => reviewQuizCard(w.key, c._id, true)} className="btn btn-primary !px-2 !py-1 !text-[11px]">I knew it</button>
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-xs text-text2">{c.reviewed ? 'Marked known ✓' : 'Queued for review'}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
               <div className="card">
                 <div className="flex items-center justify-between">
@@ -1366,6 +1528,178 @@ export default function Project() {
                     <p className="mt-3 font-heading font-bold">No quizzes yet</p>
                     <p className="mt-1 text-sm text-text3">Start your first round above — needs at least one processed PDF with concepts.</p>
                   </div>
+                )}
+              </div>
+            </div>
+            );
+          })()}
+
+          {tab === 'practice' && (() => {
+            const topicNames = concepts.length ? concepts.map((c) => c.name) : mastery.map((m) => m.concept);
+            const weakList = mastery.filter((m) => m.score < 60);
+            const knownSet = new Set(mastery.map((m) => m.concept));
+            const untestedList = topicNames.filter((n) => !knownSet.has(n));
+            const pAnswered = pQuestions.filter((v) => v.result).length;
+            const pAvg = pAnswered ? Math.round(pQuestions.reduce((s, v) => s + (v.result?.score || 0), 0) / pAnswered) : 0;
+            const pHistory = (analytics?.recentAttempts || []).filter((a) => a.source === 'practice').slice().reverse();
+            const toggleTopic = (n) => {
+              setPickedTopics((p) => p.includes(n) ? p.filter((t) => t !== n) : [...p, n]);
+            };
+            const modeActive = (m) => topicMode === m && !pickedTopics.length;
+            const typeLabel = (t) => t === 'mcq' ? 'Multiple choice' : t === 'tf' ? 'True / False' : t === 'short' ? 'One word' : 'Open ended';
+            return (
+            <div className="mt-4 space-y-5">
+              <div className="card fade-up">
+                <div className="flex items-start gap-4">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white"><PenLine size={22} /></span>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="font-heading text-xl font-bold">Practice assignment</h2>
+                    <p className="mt-1 text-sm text-text2">An exam-style paper built from your weak concepts, recent mistakes, misconceptions, growth trend, and prerequisites.</p>
+                    <div className="mt-3 grid gap-2.5 md:grid-cols-3">
+                      <div className="rounded-2xl border border-border bg-bg3 p-3.5 text-sm"><p className="font-bold">Section A · Objective.</p><p className="mt-0.5 text-text2">Multiple-choice + True/False — quick checks, instant marking.</p></div>
+                      <div className="rounded-2xl border border-border bg-bg3 p-3.5 text-sm"><p className="font-bold">Section B · Short answer.</p><p className="mt-0.5 text-text2">One word or short phrase — synonyms count.</p></div>
+                      <div className="rounded-2xl border border-border bg-bg3 p-3.5 text-sm"><p className="font-bold">Section C · Descriptive.</p><p className="mt-0.5 text-text2">Explain, reason, teach back — AI evaluates evidence.</p></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-heading font-bold">1 · Question types <span className="text-sm font-normal text-text3">{pTypes.length} of 4 selected</span></h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button onClick={() => setPTypes(['mcq', 'tf', 'short', 'open'])} className="rounded-full border border-border px-2.5 py-1 text-xs text-text2 hover:border-accent hover:text-accent">All</button>
+                    <button onClick={() => setPTypes(['short', 'open'])} className="rounded-full border border-border px-2.5 py-1 text-xs text-text2 hover:border-accent hover:text-accent">Open-ended only</button>
+                    <button onClick={() => setPTypes(['mcq', 'tf'])} className="rounded-full border border-border px-2.5 py-1 text-xs text-text2 hover:border-accent hover:text-accent">Objective only</button>
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-text2">Tick the sections you want — e.g. only Open ended for deep writing. Objective + One word check instantly; Descriptive uses AI grading.</p>
+                <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+                  {Object.entries(TYPE_META).map(([t, m]) => {
+                    const on = pTypes.includes(t);
+                    return (
+                    <button key={t} onClick={() => togglePType(t)} className={`flex items-start gap-2.5 rounded-2xl border-2 p-3.5 text-left transition ${on ? 'border-accent bg-accent/[0.06]' : 'border-border opacity-70 hover:border-border2'}`}>
+                      <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-xs font-bold text-white ${on ? 'border-accent bg-accent' : 'border-border2 bg-transparent'}`}>{on ? '✓' : ''}</span>
+                      <span>
+                        <span className="flex items-center gap-1.5 font-bold">{m.label} <span className="badge badge-info !text-[10px]">{m.tag}</span></span>
+                        <span className="mt-0.5 block text-xs text-text3">{m.desc}</span>
+                      </span>
+                    </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-heading font-bold">2 · Topics</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button onClick={() => { setTopicMode('all'); setPickedTopics([]); }} className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${modeActive('all') ? 'border-accent bg-accent/10 font-bold text-accent' : 'border-border text-text2 hover:border-accent hover:text-accent'}`}>All</button>
+                    <button onClick={() => { setTopicMode('weak'); setPickedTopics([]); }} className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${modeActive('weak') ? 'border-accent bg-accent/10 font-bold text-accent' : 'border-border text-text2 hover:border-accent hover:text-accent'}`}>Weak only{weakList.length ? ` (${weakList.length})` : ''}</button>
+                    <button onClick={() => { setTopicMode('untested'); setPickedTopics([]); }} className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${modeActive('untested') ? 'border-accent bg-accent/10 font-bold text-accent' : 'border-border text-text2 hover:border-accent hover:text-accent'}`}>Untested{untestedList.length ? ` (${untestedList.length})` : ''}</button>
+                    <button onClick={() => { setTopicMode('all'); setPickedTopics([]); }} className="rounded-full border border-border px-2.5 py-1 text-xs text-text2 hover:border-accent hover:text-accent">Clear</button>
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-text2">Mixed across all your materials — untick anything to exclude it. Adaptive difficulty still picks your weakest within the selection.</p>
+                {topicNames.length ? (
+                  <div className="mt-2 flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
+                    {topicNames.map((n) => {
+                      const off = pickedTopics.includes(n);
+                      return (
+                      <button key={n} onClick={() => toggleTopic(n)} title={off ? 'Click to include back' : 'Click to exclude'} className={`rounded-full border px-2.5 py-1 text-xs transition ${off ? 'border-border text-text3 line-through opacity-70' : 'border-accent/50 bg-accent/10 font-semibold text-accent hover:border-accent'}`}>{n}</button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-text3">No topics yet — upload and process a PDF first. Practice will use adaptive defaults.</p>
+                )}
+              </div>
+
+              <div className="card">
+                <h3 className="font-heading font-bold">3 · How many questions?</h3>
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-xl border border-border px-1.5 py-1.5">
+                    <button onClick={() => setPCount((c) => Math.max(1, c - 1))} className="px-1.5 text-lg leading-none text-text2 hover:text-accent">−</button>
+                    <b className="whitespace-nowrap text-sm">{pCount} questions</b>
+                    <button onClick={() => setPCount((c) => Math.min(12, c + 1))} className="px-1.5 text-lg leading-none text-text2 hover:text-accent">+</button>
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-xl border border-border p-1">
+                    {['mixed', 'easy', 'medium', 'hard'].map((d) => (
+                      <button key={d} onClick={() => setPDifficulty(d)} className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${pDifficulty === d ? 'bg-accent text-white' : 'text-text2 hover:text-accent'}`}>{d === 'mixed' ? 'Mixed (auto)' : d[0].toUpperCase() + d.slice(1)}</button>
+                    ))}
+                  </span>
+                  <button onClick={startPaper} disabled={pStarting || !pTypes.length} className="btn btn-primary">{pStarting ? 'Building…' : 'Start assignment'}</button>
+                  <button onClick={() => goTab('quiz')} className="btn btn-outline">Take a quiz instead</button>
+                </div>
+                {!!pTip && <p className="alert alert-info mt-3 !mb-0">✨ {pTip}</p>}
+              </div>
+
+              {pStarting && (
+                <div className="space-y-3">
+                  {[0, 1].map((i) => (
+                    <div key={i} className="card">
+                      <Skel className="h-3 w-1/3" />
+                      <div className="mt-2"><TextLines lines={2} /></div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!!pQuestions.length && !pStarting && (
+                <div id="practice-paper" className="space-y-3">
+                  <p className="flex items-center justify-between text-sm font-bold">Your paper <span className="text-xs font-normal text-text3">{pAnswered}/{pQuestions.length} answered{pAnswered ? ` · ${pAvg}% avg` : ''}</span></p>
+                  {pQuestions.map((x, qi) => (
+                    <div key={x.id} className="card">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-text3">Q{qi + 1} · {sectionOf(x.type)} · {typeLabel(x.type)}</p>
+                      <p className="mt-1 text-sm"><span className="badge badge-info mr-2">{x.concept} · {x.difficulty}</span></p>
+                      <div className="mt-1"><MathText text={x.stem} /></div>
+                      {(x.type === 'mcq' || x.type === 'tf') ? (
+                        <div className="mt-2 grid gap-1.5">
+                          {x.options.map((o, i) => {
+                            const right = x.result ? isCorrectOption(x, o) : false;
+                            const wrongPick = x.result && !right && o === x.answer;
+                            const showLetter = x.type === 'mcq';
+                            return (
+                            <button key={o} onClick={() => answerPaper(x, o)} disabled={!!x.result || !!answeringId} className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-left text-sm transition hover:border-accent hover:text-accent disabled:cursor-default disabled:hover:border-border disabled:hover:text-text">
+                              {showLetter && <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${right ? 'bg-green-500 text-white' : wrongPick ? 'bg-red-500 text-white' : 'bg-surface text-text2'}`}>{String.fromCharCode(65 + i)}</span>}
+                              <span>{showLetter ? optionLabel(o, i).slice(3) : o}</span>
+                              {right && <span className="ml-auto font-bold text-green-600">✓</span>}
+                              {wrongPick && <span className="ml-auto font-bold text-red-500">✕</span>}
+                            </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex gap-2">
+                          <input value={x.answer} onChange={(e) => setPQuestions((qs) => qs.map((y) => (y.id === x.id ? { ...y, answer: e.target.value } : y)))} placeholder={x.type === 'short' ? 'One word or short phrase…' : 'Explain in your own words…'} disabled={!!x.result} className="input flex-1" />
+                          <button onClick={() => answerPaper(x)} disabled={!!x.result || !!answeringId} className="btn btn-outline">Submit</button>
+                        </div>
+                      )}
+                      {x.result && (
+                        <p className={`alert mt-2 !mb-0 ${x.result.score >= 60 ? 'alert-success' : 'alert-error'}`}>Score {x.result.score} — {x.result.feedback?.text}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="card">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-heading font-bold">Practice history</h3>
+                  <button onClick={refreshStats} className="text-xs font-medium text-text3 hover:text-accent">Refresh</button>
+                </div>
+                {pHistory.length ? (
+                  <div className="mt-2 max-h-64 space-y-1 overflow-auto">
+                    {pHistory.map((a, i) => (
+                      <p key={i} className="flex items-center justify-between rounded-lg bg-bg3 px-3 py-2 text-sm">
+                        <span className="font-semibold">Paper #{pHistory.length - i}</span>
+                        <span className={`badge ${a.score >= 60 ? 'badge-low' : 'badge-high'}`}>{a.score}%</span>
+                        <span className="text-xs text-text3">{a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}</span>
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-text3">No practice papers yet — build your first assignment above.</p>
                 )}
               </div>
             </div>
@@ -1415,7 +1749,7 @@ export default function Project() {
               <div className="mt-2 flex flex-wrap gap-2">
                 <button onClick={refreshStats} className="btn btn-outline !py-1.5">Refresh stats</button>
                 <button onClick={() => goTab('quiz')} className="btn btn-primary !py-1.5 !text-xs">Adaptive quiz →</button>
-                <button onClick={() => goTab('flashcards')} className="btn btn-outline !py-1.5 !text-xs">Flashcards →</button>
+                <button onClick={() => goTab('tutor')} className="btn btn-outline !py-1.5 !text-xs">Ask tutor →</button>
               </div>
               </div>
             </div>
@@ -1453,7 +1787,7 @@ export default function Project() {
                         <div className="mt-1 h-1.5 rounded bg-surface"><div className="h-1.5 rounded bg-red-500" style={{ width: `${m.score}%` }} /></div>
                         <div className="mt-1.5 flex gap-1.5">
                           <button onClick={() => goTab('quiz')} className="text-[11px] font-semibold text-accent hover:underline">Quiz →</button>
-                          <button onClick={() => { generateFlashcards(m.concept); goTab('flashcards'); }} className="text-[11px] font-semibold text-accent hover:underline">Drill cards →</button>
+                          <button onClick={() => { startQuiz(4, m.concept); goTab('quiz'); }} className="text-[11px] font-semibold text-accent hover:underline">Practice →</button>
                           <button onClick={() => { goTab('tutor'); setTimeout(() => sendText(`Explain ${m.concept} simply with one example from my PDFs`), 300); }} className="text-[11px] font-semibold text-accent hover:underline">Ask tutor →</button>
                         </div>
                       </div>

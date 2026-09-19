@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, Target, TrendingUp, Sprout, ArrowRight, Eye, EyeOff, Wand2 } from 'lucide-react';
+import { GraduationCap, Target, TrendingUp, Sprout, ArrowRight, Eye, EyeOff, Wand2, ShieldCheck } from 'lucide-react';
 import api from '../api/client.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,6 +48,9 @@ const FEATURES = [
 
 export default function Login() {
   const [mode, setMode] = useState('login');
+  // Separate learner vs admin entry: admin tab posts the same credentials but
+  // only lets admin accounts through to Mission Control.
+  const [role, setRole] = useState('learner');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [fieldErrors, setFieldErrors] = useState({});
   const [err, setErr] = useState('');
@@ -66,6 +69,13 @@ export default function Login() {
     setFieldErrors({});
   }
 
+  function switchRole(r) {
+    setRole(r);
+    setMode('login');
+    setErr('');
+    setFieldErrors({});
+  }
+
   async function submit(e) {
     e.preventDefault();
     const errors = validate(form, mode);
@@ -79,6 +89,11 @@ export default function Login() {
         ? { email: form.email.trim(), password: form.password }
         : { name: form.name.trim(), email: form.email.trim(), password: form.password };
       const { data } = await api.post(url, payload);
+      if (role === 'admin' && !data.user?.isAdmin) {
+        setErr('Not an admin account — Mission Control opens only with an admin login. Use the Learner tab instead.');
+        return;
+      }
+      // Learner tab: no blocking message — admins who land here route silently.
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       nav(data.user.isAdmin ? '/admin' : '/');
@@ -92,7 +107,7 @@ export default function Login() {
   const pwScore = mode === 'register' && form.password ? strength(form.password) : 0;
 
   return (
-    <div className="theme-auth flex min-h-screen items-center justify-center px-4 py-10">
+    <div className="theme-auth flex min-h-screen flex-col items-center justify-center px-4 py-10">
       <div className="fade-up grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border bg-bg2 shadow-xl md:grid-cols-2">
         {/* Left: photo-style panel. Drop a real photo at client/public/login-bg.jpg to use it. */}
         <div
@@ -123,10 +138,15 @@ export default function Login() {
         </div>
         {/* Right: form */}
         <div className="p-8">
-          <h2 className="font-heading text-2xl font-extrabold">
-            {mode === 'register' ? 'Create account' : 'Log in'}
+          {/* Separate learner / admin entry */}
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface p-1 text-sm font-bold">
+            <button type="button" onClick={() => switchRole('learner')} className={`rounded-lg px-3 py-2 transition ${role === 'learner' ? 'bg-bg2 text-accent shadow' : 'text-text3 hover:text-text'}`}>Learner</button>
+            <button type="button" onClick={() => switchRole('admin')} className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 transition ${role === 'admin' ? 'bg-bg2 text-accent shadow' : 'text-text3 hover:text-text'}`}><ShieldCheck size={15} /> Admin</button>
+          </div>
+          <h2 className="font-heading mt-4 text-2xl font-extrabold">
+            {role === 'admin' ? 'Admin log in' : mode === 'register' ? 'Create account' : 'Log in'}
           </h2>
-          <p className="page-subtitle !mt-1 !text-sm">Pick up right where you left off.</p>
+          <p className="page-subtitle !mt-1 !text-sm">{role === 'admin' ? 'Mission Control opens only with an admin account.' : 'Pick up right where you left off.'}</p>
           <form onSubmit={submit} className="mt-4 space-y-3" noValidate>
             {mode === 'register' && (
               <div>
@@ -169,6 +189,9 @@ export default function Login() {
             {mode === 'login' && <Link to="/forgot-password" className="block text-center text-sm text-accent hover:underline">Forgot password?</Link>}
           </form>
           {err && <p className="alert alert-error mt-3">{err}{err === 'Email already used' ? ' — click “Have account? Login” below.' : ''}</p>}
+          {role === 'admin' ? (
+            <p className="mt-4 border-t border-border pt-4 text-center text-xs text-text3">Admin accounts are created by the system — there is no admin registration. Learner? <button onClick={() => switchRole('learner')} className="font-semibold text-accent hover:underline">Log in here</button></p>
+          ) : (
           <div className="mt-4 border-t border-border pt-4 text-center text-sm text-text2">
             {mode === 'login' ? (
               <>New to AI Study Companion? <button onClick={() => switchMode('register')} className="font-semibold text-accent hover:underline">Create an account</button></>
@@ -176,6 +199,7 @@ export default function Login() {
               <>Have an account? <button onClick={() => switchMode('login')} className="font-semibold text-accent hover:underline">Log in</button></>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

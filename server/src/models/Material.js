@@ -9,6 +9,9 @@ const materialSchema = new mongoose.Schema(
     pages: { type: Number, default: 0 },
     status: { type: String, enum: ['queued', 'processing', 'ready', 'failed'], default: 'queued', index: true },
     error: { type: String, default: '' },
+    // live processing progress (shown as % + stage + elapsed time in Materials)
+    progress: { type: Number, default: 0 },
+    stage: { type: String, default: '' },
   },
   { timestamps: true }
 );

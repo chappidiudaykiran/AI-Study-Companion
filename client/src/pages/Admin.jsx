@@ -19,6 +19,18 @@ const TABS = [
   { id: 'jobs', label: 'Jobs', icon: Briefcase },
 ];
 
+// Plain-language guide for every tab — rendered as a context header so each
+// section clearly states what it shows, where the data comes from, and what to do.
+const TAB_META = {
+  overview: { title: 'Platform overview', desc: 'The whole product in one glance: how many learners create spaces → projects → learning events → AI calls, plus live proof that each must-have of the learning loop works.', tip: 'Green coverage = proven by live data. Amber = waiting for learners to use that feature.' },
+  learners: { title: 'Learners & journeys', desc: 'Every registered user. Click a learner to open their full journey: spaces, projects, quiz/practice scores, weakest concepts, AI usage and a latest-first timeline.', tip: 'Use this to demo one learner end-to-end: upload → tutor → quiz → mastery.' },
+  content: { title: 'Spaces & projects', desc: 'Everything learners created, with owners and freshness. Search across space names, project names, goals and owner emails.', tip: 'Stale projects (old updates) are candidates for follow-up or cleanup.' },
+  activity: { title: 'Platform activity', desc: 'Raw learning-event stream (quiz.answered, tutor.asked, mastery.updated…). Filter by type, user, space, project or date range.', tip: 'Start broad, then narrow: type first, then project, then time window.' },
+  aiops: { title: 'AI operations', desc: 'Every AI call the platform made: latency, tokens, estimated cost and errors — broken down by feature (tutor, quiz, recommendations…).', tip: 'High latency on one feature = check its model and prompt size in the log stream.' },
+  quality: { title: 'AI quality & evaluation', desc: 'Curated PRD cases (T1–C1) judged against live production data: citation rate, off-topic refusals, grading reliability.', tip: 'Amber (!) means “needs more learner data”, not failure — run a quiz or ask the tutor and refresh.' },
+  jobs: { title: 'Background jobs', desc: 'Async document work (PDF extract → chunk → embed → concepts). Failed jobs block material readiness — retry them here.', tip: 'queued = waiting · processing = running now · done = finished · failed = needs retry.' },
+};
+
 const EVAL_CASES = [
   ['T1', 'tutor-grounded', 'In-material question → cited answer with correct page'],
   ['T2', 'tutor-grounded', 'Follow-up uses conversation history'],
@@ -150,10 +162,10 @@ export default function Admin() {
   const ev = data.evaluation;
   const booting = loading && !o;
   const funnel = [
-    { label: 'Spaces', value: data.spaces.length },
-    { label: 'Projects', value: data.projects.length },
-    { label: 'Learning events', value: o?.events ?? data.events.length },
-    { label: 'AI calls', value: derived.aiCalls },
+    { label: 'Spaces', value: data.spaces.length, hint: 'learner workspaces created' },
+    { label: 'Projects', value: data.projects.length, hint: 'study goals inside spaces' },
+    { label: 'Learning events', value: o?.events ?? data.events.length, hint: 'quiz, tutor, mastery actions' },
+    { label: 'AI calls', value: derived.aiCalls, hint: 'logged model invocations' },
   ];
   const maxFunnel = Math.max(1, ...funnel.map((f) => f.value));
 
@@ -223,13 +235,22 @@ export default function Admin() {
           {TABS.map((t) => {
             const active = tab === t.id;
             return (
-              <button key={t.id} onClick={() => setTab(t.id)} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition ${active ? 'bg-accent text-white shadow' : 'border border-border bg-bg2 text-text2 hover:border-accent hover:text-accent'}`}>
+              <button key={t.id} onClick={() => setTab(t.id)} title={TAB_META[t.id]?.desc} className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition ${active ? 'bg-accent text-white shadow' : 'border border-border bg-bg2 text-text2 hover:border-accent hover:text-accent'}`}>
                 <t.icon size={14} /> {t.label}
                 {t.id === 'jobs' && (o?.jobsFailed ?? 0) > 0 && <span className="rounded-full bg-red-500 px-1.5 text-[10px] text-white">{o.jobsFailed}</span>}
               </button>
             );
           })}
         </div>
+
+        {/* CONTEXT HEADER — what this section shows and what to do with it */}
+        {TAB_META[tab] && (
+          <div className="card fade-up mt-3 !border-accent/25 !bg-accent/[0.04]">
+            <h2 className="font-heading text-[15px] font-bold">{TAB_META[tab].title}</h2>
+            <p className="mt-0.5 text-[13px] text-text2">{TAB_META[tab].desc}</p>
+            <p className="mt-1 text-xs text-text3">💡 {TAB_META[tab].tip}</p>
+          </div>
+        )}
 
         {/* ============ OVERVIEW ============ */}
         {tab === 'overview' && (
@@ -240,16 +261,18 @@ export default function Admin() {
                 <div className="mt-3 space-y-2">
                   {funnel.map((f, i) => (
                     <div key={f.label}>
-                      <div className="flex justify-between text-xs"><span className="font-bold">0{i + 1} · {f.label}</span><span>{f.value}</span></div>
+                      <div className="flex justify-between text-xs"><span className="font-bold">0{i + 1} · {f.label} <span className="font-normal text-text3">— {f.hint}</span></span><span className="font-extrabold">{f.value}</span></div>
                       <div className="mt-0.5 h-2.5 overflow-hidden rounded-full bg-surface">
                         <div className="h-2.5 rounded-full bg-gradient-to-r from-[#4f46e5] to-[#0ea5e9]" style={{ width: `${Math.max(4, Math.round((f.value / maxFunnel) * 100))}%` }} />
                       </div>
                     </div>
                   ))}
                 </div>
+                <p className="mt-2 text-[11px] text-text3">Bars are scaled to the largest step — a healthy platform narrows gradually; a cliff between steps shows where learners drop off.</p>
               </div>
               <div className="card">
                 <h3 className="font-heading font-bold">Engagement <span className="text-xs font-normal text-text3">events by type, live</span></h3>
+                <p className="text-[11px] text-text3">Taller bar = more learner activity of that type. Hover any bar for the exact count.</p>
                 {booting ? <div className="mt-2"><TextLines lines={5} /></div> : derived.engagement.length ? (
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={derived.engagement} layout="vertical" margin={{ left: 8, right: 12 }}>
@@ -268,17 +291,19 @@ export default function Admin() {
                 <h3 className="font-heading font-bold">Learning-loop coverage <span className="text-xs font-normal text-text3">must-haves mapped to live data</span></h3>
                 <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
                   {loopCoverage.map((c) => (
-                    <p key={c.label} className={`flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs ${c.live ? 'bg-green-50 text-green-900 dark:bg-green-950 dark:text-green-200' : 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200'}`}>
+                    <p key={c.label} title={c.live ? 'Proven by live production data' : 'Waiting for learners to exercise this feature'} className={`flex items-start gap-1.5 rounded-xl px-2.5 py-2 text-xs ${c.live ? 'bg-green-50 text-green-900 dark:bg-green-950 dark:text-green-200' : 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200'}`}>
                       {c.live ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" /> : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
-                      <span><b>{c.label}</b><br /><span className="opacity-80">{c.hint}</span></span>
+                      <span><b>{c.label} — {c.live ? 'live ✓' : 'pending…'}</b><br /><span className="opacity-80">{c.hint}</span></span>
                     </p>
                   ))}
                 </div>
+                <p className="mt-2 text-[11px] text-text3">Each row maps a product must-have to the live signal that proves it. Amber rows turn green as soon as learners use that feature — no code change needed.</p>
               </div>
             </div>
             <div className="space-y-4">
               <div className="card !border-accent/30 !bg-accent/[0.05]">
                 <h3 className="font-heading flex items-center gap-1.5 font-bold"><Wrench size={15} className="text-accent" /> Needs attention</h3>
+                <p className="text-[11px] text-text3">Top 3 failures right now — fix these first. Full lists live under Jobs and AI Ops.</p>
                 <div className="mt-2 space-y-1.5 text-xs">
                   {attention.length ? attention.map((a) => (
                     <p key={a.id} className="rounded-xl border border-border bg-bg2 px-2.5 py-2">
@@ -290,6 +315,7 @@ export default function Admin() {
               </div>
               <div className="card">
                 <h3 className="font-heading font-bold">System health</h3>
+                <p className="text-[11px] text-text3">Live signals — error rate above 20% or a growing queue means the platform needs attention.</p>
                 <div className="mt-2 space-y-1.5 text-xs">
                   <p className="flex justify-between"><span>API + DB</span><span className="flex items-center gap-1.5"><HealthDot ok={o != null} /> {o ? 'healthy' : 'loading'}</span></p>
                   <p className="flex justify-between"><span>AI error rate</span><b>{(derived.errorRate * 100).toFixed(1)}% ({derived.aiErrors}/{derived.aiCalls})</b></p>
@@ -300,6 +326,7 @@ export default function Admin() {
               </div>
               <div className="card">
                 <h3 className="font-heading font-bold">AI quality at a glance</h3>
+                <p className="text-[11px] text-text3">Citation = grounded answers · Refusals = off-topic blocked · Err rate = AI failures share.</p>
                 <div className="mt-2 grid grid-cols-3 gap-2 text-center">
                   <div className="rounded-xl bg-bg3 p-2"><p className="font-heading text-lg font-extrabold">{ev?.tutor?.citationRate ?? '—'}</p><p className="text-[10px] text-text3">citation</p></div>
                   <div className="rounded-xl bg-bg3 p-2"><p className="font-heading text-lg font-extrabold">{ev?.tutor?.unsupportedRefusals ?? '—'}</p><p className="text-[10px] text-text3">refusals</p></div>
@@ -334,7 +361,7 @@ export default function Admin() {
             </div>
             <div className="card lg:col-span-3">
               <h3 className="font-heading font-bold">Learning journey <span className="text-xs font-normal text-text3">projects · assessments · progress · AI usage</span></h3>
-              {!journey && !journeyLoading && <p className="mt-2 text-sm text-text3">Select a learner to inspect their journey.</p>}
+              {!journey && !journeyLoading && <p className="mt-2 text-sm text-text3">Select a learner on the left — their projects, recent scores, weakest concepts and timeline appear here.</p>}
               {journeyLoading && <div className="mt-3"><TextLines lines={6} /></div>}
               {journey && !journeyLoading && (
                 <div className="mt-2 space-y-3">
@@ -436,6 +463,7 @@ export default function Admin() {
         {tab === 'activity' && (
           <div className="card mt-4">
             <h3 className="font-heading font-bold">Platform activity <span className="text-xs font-normal text-text3">filter by user · space · project · type · time (§16)</span></h3>
+            <p className="mt-0.5 text-[11px] text-text3">Common types: <b>quiz.answered</b> = a question graded · <b>tutor.asked</b> = tutor reply sent · <b>mastery.updated</b> = concept score changed · <b>recommendation.created</b> = new next-step saved.</p>
             <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-7">
               <input value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })} placeholder="type: quiz.answered" className="input !py-1.5 !text-xs" />
               <input value={filters.user} onChange={(e) => setFilters({ ...filters, user: e.target.value })} placeholder="user id" className="input !py-1.5 !text-xs" />
@@ -464,18 +492,19 @@ export default function Admin() {
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {[
-                { label: 'AI calls', value: derived.aiCalls },
-                { label: 'Avg latency', value: `${derived.avgLatency}ms` },
-                { label: 'Tokens', value: derived.totalTokens.toLocaleString() },
-                { label: 'Est. cost', value: `$${derived.totalCost.toFixed(4)}` },
-                { label: 'Error rate', value: `${(derived.errorRate * 100).toFixed(1)}%` },
+                { label: 'AI calls', value: derived.aiCalls, hint: 'total logged invocations' },
+                { label: 'Avg latency', value: `${derived.avgLatency}ms`, hint: 'mean response time' },
+                { label: 'Tokens', value: derived.totalTokens.toLocaleString(), hint: 'input + output tokens' },
+                { label: 'Est. cost', value: `$${derived.totalCost.toFixed(4)}`, hint: 'model pricing estimate' },
+                { label: 'Error rate', value: `${(derived.errorRate * 100).toFixed(1)}%`, hint: 'failed share of calls' },
               ].map((k) => (
-                <div key={k.label} className="card !py-3 text-center"><p className="font-heading text-xl font-extrabold">{k.value}</p><p className="label">{k.label}</p></div>
+                <div key={k.label} title={k.hint} className="card !py-3 text-center"><p className="font-heading text-xl font-extrabold">{k.value}</p><p className="label">{k.label}</p><p className="text-[10px] text-text3">{k.hint}</p></div>
               ))}
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="card">
                 <h3 className="font-heading font-bold">Latency by feature <span className="text-xs font-normal text-text3">answers “why slow / which model”</span></h3>
+                <p className="text-[11px] text-text3">Average milliseconds per AI feature — the tallest bar is the slowest experience for learners.</p>
                 {derived.latencyByFeature.length ? (
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={derived.latencyByFeature}>
@@ -491,6 +520,7 @@ export default function Admin() {
               <div className="card">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-heading font-bold">AI log stream</h3>
+                  <p className="text-[11px] text-text3">Newest first · <span className="font-semibold text-green-600">✓ ok</span> · <span className="font-semibold text-red-600">✕ error with message</span>. Latest 60 shown.</p>
                   <div className="relative">
                     <Search size={13} className="absolute left-2 top-2 text-text3" />
                     <input value={logQ} onChange={(e) => setLogQ(e.target.value)} placeholder="Search feature, model, error…" className="input !w-56 !py-1 !pl-7 !text-xs" />
@@ -524,6 +554,10 @@ export default function Admin() {
             <div className="card">
               <h3 className="font-heading font-bold">Curated evaluation cases → live verdict</h3>
               <p className="text-xs text-text3">Cases in <code>eval/cases.js</code>; verdicts computed from production data on every load.</p>
+              <p className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 font-bold text-green-800 dark:bg-green-950 dark:text-green-200">✓ pass — proven by data</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-200">! needs data — use the feature, then refresh</span>
+              </p>
               <div className="mt-2 grid gap-1.5 md:grid-cols-2">
                 {EVAL_CASES.map(([id, area, desc]) => {
                   let pass = null;
@@ -558,6 +592,12 @@ export default function Admin() {
             </div>
             <div className="card">
               <h3 className="font-heading font-bold">Background queue <span className="text-xs font-normal text-text3">retry failed document work here</span></h3>
+              <p className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
+                <span className="rounded-full bg-bg3 px-2 py-0.5 font-bold text-text2">queued — waiting for a worker</span>
+                <span className="rounded-full bg-bg3 px-2 py-0.5 font-bold text-text2">processing — running right now</span>
+                <span className="rounded-full bg-green-100 px-2 py-0.5 font-bold text-green-800 dark:bg-green-950 dark:text-green-200">done — finished, material is ready</span>
+                <span className="rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-700 dark:bg-red-950 dark:text-red-200">failed — hit Retry to re-run</span>
+              </p>
               <div className="mt-2 max-h-[480px] space-y-1.5 overflow-auto">
                 {booting && !data.jobs.length && <TextLines lines={5} />}
                 {data.jobs.map((j) => (

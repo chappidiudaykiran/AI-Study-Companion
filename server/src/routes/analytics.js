@@ -10,6 +10,7 @@ const Material = require('../models/Material');
 const Message = require('../models/Message');
 const Recommendation = require('../models/Recommendation');
 const Concept = require('../models/Concept');
+const Chunk = require('../models/Chunk');
 const { buildRecommendation, growthBuckets, buildAdaptive } = require('../services/recommendService');
 
 const router = express.Router();
@@ -34,21 +35,46 @@ router.get('/projects/:projectId/recommendations', loadProject, async (req, res,
 
 // GET /api/projects/:projectId/concepts — concepts divided by source material,
 // each merged with the learner's mastery (score/mistakes/status).
+// Only concepts tied to a live (non-deleted) document are returned — there is
+// no "other" bucket. Legacy unlinked names are attributed to a material whose
+// chunks mention them (self-healing write-back); the rest stay hidden.
 router.get('/projects/:projectId/concepts', loadProject, async (req, res, next) => {
   try {
-    const [concepts, mastery] = await Promise.all([
+    const [concepts, mastery, materials] = await Promise.all([
       Concept.find({ project: req.project._id }).sort({ createdAt: 1 }).lean(),
       Mastery.find({ project: req.project._id, user: req.user._id }).lean(),
+      Material.find({ project: req.project._id }).select('_id filename').lean(),
     ]);
+    const live = new Map(materials.map((m) => [String(m._id), m.filename || 'Document']));
+    const esc = (s) => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    async function attribute(name) {
+      const hit = await Chunk.findOne({ project: req.project._id, text: { $regex: esc(name), $options: 'i' } }).select('material').lean();
+      if (!hit || !live.has(String(hit.material))) return null;
+      return { material: hit.material, docName: live.get(String(hit.material)) };
+    }
+    // self-healing write-back for legacy rows without a material link
+    for (const c of concepts) {
+      if (!c.material || !live.has(String(c.material))) {
+        const found = await attribute(c.name);
+        if (found) {
+          await Concept.updateOne({ _id: c._id }, { $set: { material: found.material, docName: found.docName } });
+          c.material = found.material;
+          c.docName = found.docName;
+        }
+      } else if (!c.docName) {
+        c.docName = live.get(String(c.material));
+      }
+    }
+    const visible = concepts.filter((c) => c.material && live.has(String(c.material)));
     const byName = Object.fromEntries(mastery.map((m) => [m.concept, m]));
     const growth = Object.fromEntries(growthBuckets(mastery).map((g) => [g.concept, g]));
-    const list = concepts.map((c) => {
+    const list = visible.map((c) => {
       const m = byName[c.name];
       const g = growth[c.name];
       return {
         name: c.name,
         description: c.description || '',
-        docName: c.docName || '',
+        docName: c.docName || live.get(String(c.material)) || 'Document',
         material: c.material || null,
         score: m?.score ?? null,
         mistakes: m?.mistakes ?? 0,
@@ -56,11 +82,14 @@ router.get('/projects/:projectId/concepts', loadProject, async (req, res, next) 
         delta: g?.delta ?? 0,
       };
     });
-    // concepts with mastery but no Concept row (e.g. from flashcards) still show
+    // concepts with mastery but no Concept row (e.g. from flashcards): attribute
+    // to a material the same way, otherwise skip so no bucket is needed
     for (const m of mastery) {
       if (!list.some((c) => c.name === m.concept)) {
+        const found = await attribute(m.concept);
+        if (!found) continue;
         const g = growth[m.concept];
-        list.push({ name: m.concept, description: '', docName: '', material: null, score: m.score, mistakes: m.mistakes || 0, status: g?.status || 'stable', delta: g?.delta ?? 0 });
+        list.push({ name: m.concept, description: '', docName: found.docName, material: found.material, score: m.score, mistakes: m.mistakes || 0, status: g?.status || 'stable', delta: g?.delta ?? 0 });
       }
     }
     res.json({ concepts: list });

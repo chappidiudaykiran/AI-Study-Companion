@@ -114,7 +114,7 @@ async function buildAdaptive({ projectId, userId, project }) {
         detail: quizPlan[0]?.reason || '',
       });
       actions.push({
-        kind: 'flashcards', tab: 'flashcards', concept: weak[0].concept,
+        kind: 'flashcards', tab: 'quiz', concept: weak[0].concept,
         label: flashcardCount ? `Drill ${dueCards} due flashcard${dueCards === 1 ? '' : 's'}: ${weak[0].concept}` : `Generate flashcards: ${weak[0].concept}`,
         detail: flashcardFocus[0]?.reason || '',
       });

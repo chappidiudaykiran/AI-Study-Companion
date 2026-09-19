@@ -4,7 +4,7 @@ import CrumbCtx, { useCrumbs } from './crumbs.js';
 import {
   Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen, LayoutGrid, Plus, LogOut,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
-  ListChecks, Layers, TrendingUp, BarChart3, LayoutDashboard, BookOpen,
+  ListChecks, Layers, TrendingUp, BarChart3, LayoutDashboard, BookOpen, PenLine,
 } from 'lucide-react';
 import api from './api/client.js';
 import Home from './pages/Home.jsx';
@@ -36,9 +36,10 @@ export { useCrumbs };
 const TOOLS = [
   { tab: 'overview', label: 'Overview', icon: LayoutGrid },
   { tab: 'materials', label: 'Materials', icon: UploadCloud },
-  { tab: 'tutor', label: 'AI Tutor', icon: MessagesSquare, badge: 'AI' },
+  { tab: 'tutor', label: 'AI Tutor', icon: MessagesSquare },
   { tab: 'concepts', label: 'Concepts', icon: BookOpen },
   { tab: 'quiz', label: 'Quiz', icon: ListChecks },
+  { tab: 'practice', label: 'Practice', icon: PenLine },
   { tab: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { tab: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
@@ -147,10 +148,10 @@ function Sidebar({ collapsed, setCollapsed }) {
         )}
       </div>
 
-      <div className="mt-4 flex-1 space-y-2 overflow-y-auto px-3 pb-2">
+      <div className={onProject && lastProject ? 'mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-1 overflow-y-auto px-3 pb-1' : 'mt-4 flex-1 space-y-2 overflow-y-auto px-3 pb-2'}>
         {user.isAdmin ? (
           <>
-            <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+            <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
               <LayoutDashboard size={17} className="shrink-0" /> {!collapsed && 'Dashboard'}
             </NavLink>
           </>
@@ -160,13 +161,15 @@ function Sidebar({ collapsed, setCollapsed }) {
             <NavLink to="/" end className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
               <HomeIcon size={17} className="shrink-0" /> {!collapsed && 'Home'}
             </NavLink>
-            <button onClick={() => nav(lastProject.spaceId ? `/?space=${lastProject.spaceId}` : '/')} title={lastProject.spaceName || 'Space'} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text2 transition hover:bg-surface hover:text-text">
-              <FolderOpen size={17} className="shrink-0" /> {!collapsed && <span className="truncate">{lastProject.spaceName || 'Space'}</span>}
-            </button>
-            <button onClick={() => nav(`/project/${pid}?tab=overview`)} title={lastProject.name} className="ml-7 flex w-[calc(100%-1.75rem)] items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium transition text-text2 hover:bg-surface hover:text-text">
-              <FolderOpen size={15} className="shrink-0" />
-              {!collapsed && <span className="truncate">{lastProject.name}</span>}
-            </button>
+            <div className="space-y-0">
+              <button onClick={() => nav(lastProject.spaceId ? `/?space=${lastProject.spaceId}` : '/')} title={lastProject.spaceName || 'Space'} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-text2 transition hover:bg-surface hover:text-text">
+                <FolderOpen size={17} className="shrink-0" /> {!collapsed && <span className="truncate">{lastProject.spaceName || 'Space'}</span>}
+              </button>
+              <button onClick={() => nav(`/project/${pid}?tab=overview`)} title={lastProject.name} className="ml-7 flex w-[calc(100%-1.75rem)] items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition text-text2 hover:bg-surface hover:text-text">
+                <FolderOpen size={15} className="shrink-0" />
+                {!collapsed && <span className="truncate">{lastProject.name}</span>}
+              </button>
+            </div>
             {TOOLS.map((t) => {
               const active = activeTab === t.tab;
               return (
