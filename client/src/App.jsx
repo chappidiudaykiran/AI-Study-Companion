@@ -163,8 +163,8 @@ function Sidebar({ collapsed, setCollapsed }) {
             <button onClick={() => nav(lastProject.spaceId ? `/?space=${lastProject.spaceId}` : '/')} title={lastProject.spaceName || 'Space'} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text2 transition hover:bg-surface hover:text-text">
               <FolderOpen size={17} className="shrink-0" /> {!collapsed && <span className="truncate">{lastProject.spaceName || 'Space'}</span>}
             </button>
-            <button onClick={() => nav(`/project/${pid}?tab=overview`)} title={lastProject.name} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition text-text2 hover:bg-surface hover:text-text">
-              <FolderOpen size={17} className="shrink-0" />
+            <button onClick={() => nav(`/project/${pid}?tab=overview`)} title={lastProject.name} className="ml-7 flex w-[calc(100%-1.75rem)] items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium transition text-text2 hover:bg-surface hover:text-text">
+              <FolderOpen size={15} className="shrink-0" />
               {!collapsed && <span className="truncate">{lastProject.name}</span>}
             </button>
             {TOOLS.map((t) => {
