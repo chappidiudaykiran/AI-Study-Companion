@@ -35,7 +35,7 @@ export default function StudyCard({
   const theme = themeFor(id, index, palette);
   return (
     <div
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-bg2 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+      className="group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-bg2 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
       onClick={onOpen}
     >
       <div className={`h-1.5 bg-gradient-to-r ${theme.bar}`} />

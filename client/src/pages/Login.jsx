@@ -112,15 +112,15 @@ export default function Login() {
             <span className="bg-gradient-to-r from-blue-200 via-blue-300 to-cyan-200 bg-clip-text font-heading text-xl font-extrabold text-transparent drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">AI Study Companion</span>
           </div>
           <div>
-            <h1 className="mt-2 font-heading text-3xl font-extrabold leading-tight drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)]">Welcome back to your learning space.</h1>
+            <h1 className="mt-2 bg-gradient-to-br from-white via-blue-100 to-blue-300 bg-clip-text font-heading text-4xl font-extrabold leading-[1.1] text-transparent drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)]">Welcome back to your learning space.</h1>
             <p className="mt-2 text-sm text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">Your projects, progress, and learning context are ready when you are.</p>
           </div>
           <ul className="relative space-y-4">
             {FEATURES.map((f) => (
               <li key={f.title} className="relative flex items-center gap-3">
-                <span className="z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/15"><f.icon size={17} /></span>
+                <span className="z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/30 bg-white/15 shadow-lg shadow-indigo-950/40"><f.icon size={17} /></span>
                 <span>
-                  <span className="block text-sm font-bold drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">{f.title}</span>
+                  <span className="block bg-gradient-to-r from-white to-blue-200 bg-clip-text text-sm font-extrabold text-transparent drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">{f.title}</span>
                   <span className="block text-[13px] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">{f.desc}</span>
                 </span>
               </li>

@@ -171,7 +171,7 @@ export default function Home() {
         {!selected ? (
           <div>
             <div className="page-header fade-up">
-              <h1 className="page-title">Your <span className="hero-gradient-text">spaces</span></h1>
+              <h1 className="page-title"><span className="hero-gradient-text">Your spaces</span></h1>
               <p className="page-subtitle">{spaces.length} space(s). Select a space to open its workspace.</p>
               {isAdmin && <p className="alert alert-info mt-3">Admin view — read-only. Manage the platform from the <Link to="/admin" className="font-semibold underline">Admin dashboard</Link>.</p>}
             </div>
