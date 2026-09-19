@@ -42,10 +42,9 @@ const TOOLS = [
   { tab: 'analytics', label: 'Analytics', icon: BarChart3 },
 ];
 
-function Sidebar() {
+function Sidebar({ collapsed, setCollapsed }) {
   const nav = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
   const [spaces, setSpaces] = useState([]);
   const [showSpaceForm, setShowSpaceForm] = useState(false);
   const [spaceName, setSpaceName] = useState('');
@@ -201,7 +200,7 @@ function Sidebar() {
               <button onClick={() => nav('/')} className="mt-1 flex w-full items-center gap-1 px-3 text-sm font-medium text-text2 hover:text-text">
                 <span aria-hidden>←</span> {!collapsed && 'Spaces'}
               </button>
-              <button onClick={() => nav(`/?space=${selSpace._id}`)} className="flex w-full items-center gap-2.5 rounded-xl border border-border bg-bg3 px-3 py-2.5 text-left">
+              <button onClick={() => nav(`/?space=${selSpace._id}`)} className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left ${collapsed ? 'justify-center border border-transparent' : 'border border-border bg-bg3'}`}>
                 <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">{(selSpace.name || 'S')[0].toUpperCase()}</span>
                 {!collapsed && <span className="min-w-0 text-left"><span className="block truncate text-sm font-semibold">{selSpace.name}</span><span className="block text-xs text-text3">{selSpace.projects ?? spaceProjects.length} project{(selSpace.projects ?? spaceProjects.length) === 1 ? '' : 's'}</span></span>}
               </button>
@@ -220,7 +219,7 @@ function Sidebar() {
             <>
             <button
               onClick={() => nav('/')}
-              className="flex w-full items-center gap-3 rounded-xl border border-border bg-bg3 px-3 py-2.5 text-left transition hover:border-border2"
+              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${collapsed ? 'justify-center border border-transparent' : 'border border-border bg-bg3 hover:border-border2'}`}
             >
               <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-white"><FolderOpen size={16} /></span>
               {!collapsed && <span className="min-w-0 text-left"><span className="block truncate font-semibold">Spaces</span><span className="block text-xs text-text3">Manage learning spaces</span></span>}
@@ -253,7 +252,7 @@ function Sidebar() {
   );
 }
 
-function Topbar() {
+function Topbar({ collapsed }) {
   const nav = useNavigate();
   const location = useLocation();
   const [dark, toggle] = useDark();
@@ -281,7 +280,7 @@ function Topbar() {
     nav('/login');
   }
   return (
-    <header className={`navbar ${isAdminUser ? '' : 'lg:left-64'}`}>
+    <header className={`navbar ${isAdminUser ? '' : collapsed ? 'lg:left-16' : 'lg:left-64'}`}>
       <div className="container flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <Link to="/" className="flex items-center gap-2 lg:hidden">
@@ -335,13 +334,14 @@ export default function App() {
   const location = useLocation();
   const isAuth = ['/login', '/forgot-password', '/reset-password'].includes(location.pathname);
   const [crumbs, setCrumbs] = useState([]);
+  const [collapsed, setCollapsed] = useState(false);
   const adminView = !isAuth && !!JSON.parse(localStorage.getItem('user') || 'null')?.isAdmin;
   return (
     <CrumbCtx.Provider value={{ crumbs, setCrumbs }}>
       <div className="min-h-screen bg-bg">
-        {!isAuth && !adminView && <Sidebar />}
-        {!isAuth && <Topbar />}
-        <div className={isAuth || adminView ? '' : 'lg:pl-60'}>
+        {!isAuth && !adminView && <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />}
+        {!isAuth && <Topbar collapsed={collapsed} />}
+        <div className={isAuth || adminView ? '' : collapsed ? 'lg:pl-16' : 'lg:pl-64'}>
           <main className={isAuth || adminView ? '' : 'page'}>
             <Routes>
               <Route path="/login" element={<Login />} />
