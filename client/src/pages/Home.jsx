@@ -238,6 +238,7 @@ export default function Home() {
                   key={p._id}
                   id={p._id}
                   index={i}
+                  compact
                   title={p.name}
                   tag={p.masteryAvg !== null && p.masteryAvg !== undefined ? `${p.masteryAvg}% mastery` : 'New'}
                   description={p.description || p.goal || ''}

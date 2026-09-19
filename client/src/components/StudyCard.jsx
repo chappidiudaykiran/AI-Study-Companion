@@ -42,6 +42,7 @@ export default function StudyCard({
   id, index = 0, title, tag, description, meta = '',
   progress = null, openLabel = 'Open', onOpen,
   canDelete = false, onDelete, confirmText = 'Delete this item? This cannot be undone.',
+  compact = false,
 }) {
   const design = themeFor(id, index);
   return (
@@ -49,10 +50,10 @@ export default function StudyCard({
       className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[20px] border border-border bg-bg2 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
       onClick={onOpen}
     >
-      <div className={`relative h-36 overflow-hidden bg-gradient-to-br p-5 ${design.gradient}`}>
+      <div className={`relative ${compact ? 'h-28' : 'h-36'} overflow-hidden bg-gradient-to-br p-5 ${design.gradient}`}>
         {design.icon}
         <div className="relative z-10 flex h-full flex-col justify-end text-white">
-          <h2 className="mb-2 truncate font-heading text-xl font-extrabold leading-tight tracking-tight drop-shadow-md">{title}</h2>
+          <h2 className={`mb-2 truncate font-heading font-extrabold leading-tight tracking-tight drop-shadow-md ${compact ? 'text-lg' : 'text-xl'}`}>{title}</h2>
           {tag && (
             <div className={`flex w-fit items-center gap-1.5 rounded-md ${design.tagColor} px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm ring-1 ring-white/20`}>
               {tag}
@@ -69,7 +70,7 @@ export default function StudyCard({
           </button>
         )}
       </div>
-      <div className="flex flex-1 flex-col justify-between p-5">
+      <div className="flex flex-1 flex-col justify-between p-6">
         <div>
           <h3 className="mb-1 truncate font-heading text-[15px] font-bold text-text transition-colors group-hover:text-accent">{title}</h3>
           {description && <p className="mb-2 line-clamp-2 text-[12px] leading-relaxed text-text2">{description}</p>}
