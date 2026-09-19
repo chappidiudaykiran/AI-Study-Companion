@@ -105,11 +105,11 @@ export default function Login() {
           className="relative hidden flex-col justify-center gap-5 overflow-hidden p-8 text-white md:flex"
           style={{ backgroundImage: "linear-gradient(160deg, rgba(30,27,143,0.55), rgba(20,20,60,0.68)), url('/login-bg.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}
         >
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
-              <svg width="20" height="20" viewBox="0 0 60 60" fill="none" stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="4.5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.2" /></svg>
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200/40 bg-blue-400/30">
+              <svg width="22" height="22" viewBox="0 0 60 60" fill="none" stroke="#bfdbfe" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="4.5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.2" /></svg>
             </span>
-            <span className="font-heading font-bold text-blue-300 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">AI Study Companion</span>
+            <span className="bg-gradient-to-r from-blue-200 via-blue-300 to-cyan-200 bg-clip-text font-heading text-xl font-extrabold text-transparent drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">AI Study Companion</span>
           </div>
           <div>
             <h1 className="mt-2 font-heading text-3xl font-extrabold leading-tight drop-shadow-[0_2px_14px_rgba(0,0,0,0.65)]">Welcome back to your learning space.</h1>
