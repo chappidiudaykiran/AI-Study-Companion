@@ -137,7 +137,7 @@ export default function Login() {
           </ul>
         </div>
         {/* Right: form */}
-        <div className="p-8">
+        <div className="p-5 sm:p-8">
           {/* Separate learner / admin entry */}
           <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface p-1 text-sm font-bold">
             <button type="button" onClick={() => switchRole('learner')} className={`rounded-lg px-3 py-2 transition ${role === 'learner' ? 'bg-bg2 text-accent shadow' : 'text-text3 hover:text-text'}`}>Learner</button>

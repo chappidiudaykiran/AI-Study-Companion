@@ -167,7 +167,7 @@ export default function Home() {
     <div className="theme-dashboard min-h-screen pb-16">
       <div className="container">
         {/* Mobile spaces nav (global sidebar is desktop-only) */}
-        <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 pt-4 lg:hidden">
           {spaces.map((s) => (
             <button
               key={s._id}

@@ -38,7 +38,7 @@ export default function ResetPassword() {
 
   return (
     <div className="theme-auth flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="fade-up w-full max-w-md rounded-3xl border border-border bg-bg2 p-8 shadow-xl">
+      <div className="fade-up w-full max-w-md rounded-3xl border border-border bg-bg2 p-5 shadow-xl sm:p-8">
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white"><BrainCircuit /></span>
         <h1 className="mt-3 font-heading text-2xl font-extrabold">Set new password</h1>
         {done ? (

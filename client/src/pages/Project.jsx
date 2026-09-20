@@ -98,6 +98,7 @@ export default function Project() {
   const [chatSearch, setChatSearch] = useState('');
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [chatsCollapsed, setChatsCollapsed] = useState(false);
+  const [showMobileChats, setShowMobileChats] = useState(false);
   const chatBoxRef = useRef(null);
   const [questions, setQuestions] = useState([]);
   const [mastery, setMastery] = useState([]);
@@ -720,23 +721,28 @@ export default function Project() {
   if (!project) return <div className="theme-dashboard min-h-screen"><PageSkeleton /></div>;
   return (
     <div className={`theme-dashboard min-h-screen ${tab === 'tutor' ? 'pb-0' : 'pb-16'} ${tab === 'overview' ? 'bg-gradient-to-b from-sky-100 via-indigo-50 to-transparent dark:from-[#0b1a33] dark:via-[#0d1530] dark:to-transparent' : ''}`}>
-      {/* In-page nav — mobile only (global sidebar rules on desktop) */}
-      <aside className="flex w-full shrink-0 flex-col border-b border-border bg-bg2 lg:hidden">
-        <Link to="/" className="flex items-center gap-1 px-4 pt-4 text-sm font-medium text-text2 hover:text-text">
-          <span aria-hidden>←</span> Back
-        </Link>
-
-        <button onClick={() => goTab('overview')} title="Go to overview" className="mx-3 mt-2 flex items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:bg-surface">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">
-            {initial(project.name)}
+      {/* In-page nav — mobile only (global sidebar rules on desktop):
+          compact sticky bar: project row + horizontally scrollable tool pills */}
+      <div className="sticky top-16 z-[90] border-b border-border bg-bg2/95 backdrop-blur lg:hidden">
+        <div className="flex items-center gap-2 px-3 pt-2.5">
+          <Link to="/" title="Back to spaces" className="shrink-0 rounded-lg p-1.5 text-sm font-medium text-text2 hover:bg-surface hover:text-text">
+            <span aria-hidden>←</span>
+          </Link>
+          <button onClick={() => goTab('overview')} title="Go to overview" className="flex min-w-0 flex-1 items-center gap-2 text-left">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-xs font-bold text-white">
+              {initial(project.name)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-text">{project.name}</span>
+              <span className="block truncate text-[11px] text-text3">{project.goal?.slice(0, 40) || 'project'}</span>
+            </span>
+          </button>
+          <span className="flex shrink-0 items-center gap-1.5" title={`Average mastery ${avg}%`}>
+            <span className="h-1.5 w-12 overflow-hidden rounded-full bg-surface"><span className="block h-1.5 rounded-full bg-accent" style={{ width: `${avg}%` }} /></span>
+            <b className="text-xs">{avg}%</b>
           </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold text-text">{project.name}</span>
-            <span className="block truncate text-xs text-text3">{project.goal?.slice(0, 28) || 'project'}</span>
-          </span>
-        </button>
-
-        <nav className="mt-2 space-y-0.5 px-3 pb-4">
+        </div>
+        <nav className="no-scrollbar mt-1.5 flex gap-1.5 overflow-x-auto px-3 pb-2.5">
           {SIDEBAR_NAV.map((item) => {
             const active = tab === item.id;
             const Icon = item.icon;
@@ -744,25 +750,17 @@ export default function Project() {
               <button
                 key={item.id}
                 onClick={() => goTab(item.id)}
-                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                  active ? 'bg-accent/10 font-semibold text-accent' : 'font-medium text-text2 hover:bg-surface hover:text-text'
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  active ? 'border-accent bg-accent text-white shadow-sm' : 'border-border bg-bg3 text-text2 hover:border-accent hover:text-accent'
                 }`}
               >
-                <Icon size={17} className={active ? 'text-accent' : 'text-text3'} />
-                <span className="flex-1">{item.label}</span>
-                {item.badge && <span className="text-[11px] font-bold text-accent">{item.badge}</span>}
+                <Icon size={13} />
+                {item.label}
               </button>
             );
           })}
         </nav>
-
-        <div className="mt-auto border-t border-border p-4">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-text3">Avg mastery</p>
-          <p className="font-heading text-2xl font-extrabold text-text">{avg}%</p>
-          <div className="mt-1 h-2 rounded bg-surface"><div className="h-2 rounded bg-accent" style={{ width: `${avg}%` }} /></div>
-          <p className="mt-2 text-[11px] text-text3">Space → Project → Material → Tutor → Quiz → Mastery</p>
-        </div>
-      </aside>
+      </div>
 
       {/* Main content — tutor goes edge-to-edge with zero padding */}
       <div className={tab === 'tutor' ? '' : 'container pt-6'}>
@@ -792,9 +790,9 @@ export default function Project() {
                     <span><b className="font-extrabold text-text">{sessions.length}</b> tutor chats</span>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button onClick={() => goTab('tutor')} className="btn btn-primary"><MessagesSquare size={15} /> Ask Tutor</button>
-                  <button onClick={() => goTab('quiz')} className="btn btn-outline"><ListChecks size={15} /> Take Quiz</button>
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                  <button onClick={() => goTab('tutor')} className="btn btn-primary flex-1 justify-center sm:flex-none"><MessagesSquare size={15} /> Ask Tutor</button>
+                  <button onClick={() => goTab('quiz')} className="btn btn-outline flex-1 justify-center sm:flex-none"><ListChecks size={15} /> Take Quiz</button>
                 </div>
               </div>
             </div>
@@ -1069,10 +1067,10 @@ export default function Project() {
             const lastAssistant = [...chat].reverse().find((m) => m.role === 'assistant' && (m.citations || []).length > 0);
             const lastUserMsg = [...chat].reverse().find((m) => m.role === 'user');
             return (
-            <div className="flex h-[calc(100vh-64px)] min-h-[500px] overflow-hidden bg-bg">
-              {/* LEFT — CHATS (saved conversations, like screenshot; ‹ collapses) */}
+            <div className="relative flex h-[calc(100dvh-4rem)] overflow-hidden bg-bg md:h-[calc(100vh-64px)] md:min-h-[500px]">
+              {/* LEFT — CHATS (desktop panel; ‹ collapses. On phones use the Chats drawer instead) */}
               {!chatsCollapsed ? (
-              <div className="flex w-60 shrink-0 flex-col border-r border-border bg-bg2">
+              <div className="hidden w-60 shrink-0 flex-col border-r border-border bg-bg2 md:flex">
                 <div className="border-b border-border p-3">
                   <p className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-text3">Chats <button onClick={() => setChatsCollapsed(true)} title="Collapse chats" className="rounded px-1.5 py-0.5 text-sm leading-none hover:bg-surface hover:text-text">‹</button></p>
                   <button onClick={newChat} className="btn btn-primary w-full !py-2 !text-xs">+ New Chat</button>
@@ -1122,15 +1120,52 @@ export default function Project() {
                 </div>
               </div>
               ) : (
-              <button onClick={() => setChatsCollapsed(false)} title="Expand chats" className="flex w-8 shrink-0 items-start justify-center border-r border-border bg-bg2 pt-3 text-lg text-text3 transition hover:bg-surface hover:text-text">›</button>
+              <button onClick={() => setChatsCollapsed(false)} title="Expand chats" className="hidden w-8 shrink-0 items-start justify-center border-r border-border bg-bg2 pt-3 text-lg text-text3 transition hover:bg-surface hover:text-text md:flex">›</button>
+              )}
+
+              {/* Mobile chats drawer */}
+              {showMobileChats && (
+                <div className="absolute inset-0 z-30 md:hidden">
+                  <div onClick={() => setShowMobileChats(false)} className="absolute inset-0 bg-black/40" />
+                  <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-bg2 shadow-xl">
+                    <div className="border-b border-border p-3">
+                      <p className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-text3">
+                        Chats
+                        <button onClick={() => setShowMobileChats(false)} title="Close chats" className="rounded px-1.5 py-0.5 text-base leading-none hover:bg-surface hover:text-text">✕</button>
+                      </p>
+                      <button onClick={() => { newChat(); setShowMobileChats(false); }} className="btn btn-primary w-full !py-2 !text-xs">+ New Chat</button>
+                      <input value={chatSearch} onChange={(e) => setChatSearch(e.target.value)} placeholder="Search conversations" className="input mt-2 !py-1.5 !text-xs" />
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                      {filteredSessions.map((s) => {
+                        const isActive = s.id === activeSession;
+                        return (
+                          <div key={s.id} onClick={() => { openSession(s.id); setShowMobileChats(false); }} className={`cursor-pointer rounded-xl px-2.5 py-2 transition ${isActive ? 'bg-accent/10 font-semibold text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+                            <p className="truncate text-xs">{s.title}</p>
+                            <p className="mt-0.5 text-[10px] text-text3">{fmtDay(s.updatedAt)} · {s.exchanges} exchange{s.exchanges === 1 ? '' : 's'}</p>
+                          </div>
+                        );
+                      })}
+                      {!filteredSessions.length && !sessionsLoading && <p className="px-2 py-6 text-center text-xs text-text3">{sessions.length ? 'No match.' : 'No chats yet — start one.'}</p>}
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* CENTER — conversation (like screenshot) */}
               <div className="flex min-w-0 flex-1 flex-col bg-bg">
-                <div ref={chatBoxRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+                {/* Mobile chats toggle */}
+                <div className="flex shrink-0 items-center gap-2 border-b border-border bg-bg2 px-3 py-2 md:hidden">
+                  <button onClick={() => setShowMobileChats(true)} className="flex items-center gap-1.5 rounded-full border border-border bg-bg3 px-3 py-1.5 text-xs font-semibold text-text2">
+                    <MessagesSquare size={13} /> Chats · {sessions.length}
+                  </button>
+                  <span className="min-w-0 flex-1 truncate text-xs text-text3">{sessions.find((s) => s.id === activeSession)?.title || 'AI Tutor'}</span>
+                  <button onClick={() => { newChat(); }} className="shrink-0 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-white">+ New</button>
+                </div>
+                <div ref={chatBoxRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4 sm:px-5">
                   <div className="flex gap-2">
                     <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
-                    <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-border bg-bg2 px-3.5 py-2.5 text-sm">
+                    <div className="max-w-[94%] sm:max-w-[85%] rounded-2xl rounded-bl-sm border border-border bg-bg2 px-3.5 py-2.5 text-sm">
                       <p className="text-[11px] font-bold uppercase tracking-widest text-accent">AI Tutor</p>
                       <p className="mt-1">Hello! I&apos;m your AI tutor for this project. I answer only from your uploaded study material, with <b>document and page citations</b> for everything I explain.</p>
                       <p className="mt-1.5 italic text-text2">Try asking me to define a concept, explain how something works, or compare two ideas.</p>
@@ -1141,7 +1176,7 @@ export default function Project() {
                     <div key={i}>
                       {m.role === 'user' ? (
                         <div className="flex justify-end gap-2">
-                          <div className="max-w-[80%]">
+                          <div className="max-w-[90%] sm:max-w-[80%]">
                             <div className="rounded-2xl rounded-br-sm bg-accent px-3.5 py-2.5 text-sm text-white"><p className="whitespace-pre-wrap">{m.text}</p></div>
                             <p className="mt-0.5 text-right text-[10px] text-text3">{fmtTime(m.createdAt) || '02:48'}</p>
                           </div>
@@ -1150,7 +1185,7 @@ export default function Project() {
                       ) : (
                         <div className="flex gap-2">
                           <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
-                          <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-border bg-bg2 px-3.5 py-2.5 text-sm">
+                          <div className="max-w-[94%] sm:max-w-[85%] rounded-2xl rounded-bl-sm border border-border bg-bg2 px-3.5 py-2.5 text-sm">
                             <p className="text-[11px] font-bold uppercase tracking-widest text-accent">AI Tutor</p>
                             <div className="mt-1"><MathText text={m.text} /></div>
                             {(m.citations || []).map((c, j) => (
@@ -1183,7 +1218,7 @@ export default function Project() {
                       return (
                       <div key={w.key} className="flex gap-2">
                         <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
-                        <div className="max-w-[85%] flex-1 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
+                        <div className="max-w-[94%] sm:max-w-[85%] flex-1 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
                           <p className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-accent">
                             <span>Flashcards · {w.concept}</span>
                             <span>{cdone}/{w.cards.length} reviewed</span>
@@ -1228,7 +1263,7 @@ export default function Project() {
                     return (
                     <div key={w.key} className="flex gap-2">
                       <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
-                      <div className="max-w-[85%] flex-1 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
+                      <div className="max-w-[94%] sm:max-w-[85%] flex-1 rounded-2xl rounded-bl-sm border border-accent/40 bg-accent/[0.05] px-3.5 py-2.5 text-sm">
                         <p className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-accent">
                           <span>Quiz · {w.concept}</span>
                           <span>{doneCount}/{w.questions.length} done</span>
@@ -1273,7 +1308,7 @@ export default function Project() {
                   {asking && (
                     <div className="flex gap-2">
                       <span className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">AI</span>
-                      <div className="w-3/4 max-w-[85%] space-y-2 rounded-2xl rounded-bl-sm border border-border bg-bg2 p-3">
+                      <div className="w-3/4 max-w-[94%] sm:max-w-[85%] space-y-2 rounded-2xl rounded-bl-sm border border-border bg-bg2 p-3">
                         <Skel className="h-3 w-full" />
                         <Skel className="h-3 w-5/6" />
                         <Skel className="h-3 w-2/3" />
@@ -1281,15 +1316,15 @@ export default function Project() {
                     </div>
                   )}
                 </div>
-                <div className="shrink-0 border-t border-border bg-bg2 px-4 py-3">
+                <div className="shrink-0 border-t border-border bg-bg2 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
                   <div className="mb-2 flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
                     {TUTOR_CHIPS.map((c) => (
                       <button key={c.label} onClick={() => tutorChipAction(c.label)} disabled={asking || startingQuiz || genCards} className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-bg3 px-3 py-1.5 text-xs font-medium text-text2 hover:border-accent hover:text-accent disabled:opacity-50"><c.icon size={13} /> {c.label}</button>
                     ))}
                   </div>
                   <form onSubmit={ask} className="flex gap-2">
-                    <input id="tutor-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder={lastUserMsg ? 'Ask a follow-up…' : 'Ask anything from your material…'} className="input flex-1" />
-                    <button className="btn btn-primary !px-4" disabled={asking}><Send size={16} /></button>
+                    <input id="tutor-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder={lastUserMsg ? 'Ask a follow-up…' : 'Ask anything from your material…'} className="input min-w-0 flex-1" />
+                    <button className="btn btn-primary shrink-0 !px-4" disabled={asking}><Send size={16} /></button>
                   </form>
                   <p className="mt-1 text-center text-[10px] text-text3">Answers are generated only from your uploaded study material.</p>
                 </div>
@@ -1350,8 +1385,8 @@ export default function Project() {
               <p className="text-sm text-text2">Adaptive quiz — weaker and recently-missed concepts appear more often.</p>
 
               <div className="card fade-up">
-                <div className="flex items-start gap-4">
-                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white"><ListChecks size={22} /></span>
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-white sm:h-12 sm:w-12"><ListChecks size={22} /></span>
                   <div className="min-w-0 flex-1">
                     <h2 className="font-heading text-xl font-bold">Quiz</h2>
                     <p className="mt-1 text-sm text-text2">Questions per round, picked from your weakest concepts and recent mistakes. Difficulty adapts to your mastery — answer well and it gets harder.</p>
@@ -1440,7 +1475,7 @@ export default function Project() {
                           })}
                         </div>
                       ) : (
-                        <div className="mt-2 flex gap-2">
+                        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                           <input value={x.answer} onChange={(e) => setQuestions((qs) => qs.map((y) => (y.id === x.id ? { ...y, answer: e.target.value } : y)))} placeholder="Your answer" disabled={!!x.result || roundExpired} className="input flex-1" />
                           <button onClick={() => answer(x)} disabled={!!x.result || !!answeringId || roundExpired} className="btn btn-outline">Submit</button>
                         </div>
@@ -1504,7 +1539,7 @@ export default function Project() {
                 {history.length ? (
                   <div className="mt-2 max-h-64 space-y-1 overflow-auto">
                     {history.map((a, i) => (
-                      <p key={i} className="flex items-center justify-between rounded-lg bg-bg3 px-3 py-2 text-sm">
+                      <p key={i} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-bg3 px-3 py-2 text-sm">
                         <span className="font-semibold">Attempt #{history.length - i}</span>
                         <span className={`badge ${a.score >= 60 ? 'badge-low' : 'badge-high'}`}>{a.score}%</span>
                         <span className="text-xs text-text3">{a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}</span>
@@ -1539,8 +1574,8 @@ export default function Project() {
             return (
             <div className="mt-4 space-y-5">
               <div className="card fade-up">
-                <div className="flex items-start gap-4">
-                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-white"><PenLine size={22} /></span>
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-white sm:h-12 sm:w-12"><PenLine size={22} /></span>
                   <div className="min-w-0 flex-1">
                     <h2 className="font-heading text-xl font-bold">Practice assignment</h2>
                     <p className="mt-1 text-sm text-text2">An exam-style paper built from your weak concepts, recent mistakes, misconceptions, growth trend, and prerequisites.</p>
@@ -1612,7 +1647,7 @@ export default function Project() {
                     <b className="whitespace-nowrap text-sm">{pCount} questions</b>
                     <button onClick={() => setPCount((c) => Math.min(12, c + 1))} className="px-1.5 text-lg leading-none text-text2 hover:text-accent">+</button>
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-xl border border-border p-1">
+                  <span className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-border p-1">
                     {['mixed', 'easy', 'medium', 'hard'].map((d) => (
                       <button key={d} onClick={() => setPDifficulty(d)} className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${pDifficulty === d ? 'bg-accent text-white' : 'text-text2 hover:text-accent'}`}>{d === 'mixed' ? 'Mixed (auto)' : d[0].toUpperCase() + d.slice(1)}</button>
                     ))}
@@ -1659,7 +1694,7 @@ export default function Project() {
                           })}
                         </div>
                       ) : (
-                        <div className="mt-2 flex gap-2">
+                        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                           <input value={x.answer} onChange={(e) => setPQuestions((qs) => qs.map((y) => (y.id === x.id ? { ...y, answer: e.target.value } : y)))} placeholder={x.type === 'short' ? 'One word or short phrase…' : 'Explain in your own words…'} disabled={!!x.result} className="input flex-1" />
                           <button onClick={() => answerPaper(x)} disabled={!!x.result || !!answeringId} className="btn btn-outline">Submit</button>
                         </div>
@@ -1680,7 +1715,7 @@ export default function Project() {
                 {pHistory.length ? (
                   <div className="mt-2 max-h-64 space-y-1 overflow-auto">
                     {pHistory.map((a, i) => (
-                      <p key={i} className="flex items-center justify-between rounded-lg bg-bg3 px-3 py-2 text-sm">
+                      <p key={i} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-bg3 px-3 py-2 text-sm">
                         <span className="font-semibold">Paper #{pHistory.length - i}</span>
                         <span className={`badge ${a.score >= 60 ? 'badge-low' : 'badge-high'}`}>{a.score}%</span>
                         <span className="text-xs text-text3">{a.createdAt ? new Date(a.createdAt).toLocaleString() : ''}</span>
@@ -1985,7 +2020,7 @@ export default function Project() {
                 {attempts.length ? (
                   <div className="mt-2 max-h-64 space-y-1 overflow-auto">
                     {attempts.slice().reverse().map((a, i) => (
-                      <p key={i} className="flex items-center justify-between gap-2 rounded-lg bg-bg3 px-3 py-2 text-sm">
+                      <p key={i} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-bg3 px-3 py-2 text-sm">
                         <span className="font-semibold">Attempt #{attempts.length - i}</span>
                         <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent">{a.source || 'quiz'}</span>
                         <span className={`badge ${(a.score ?? 0) >= 60 ? 'badge-low' : 'badge-high'}`}>{a.score ?? 0}%</span>

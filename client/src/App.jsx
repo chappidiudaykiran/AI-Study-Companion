@@ -5,6 +5,7 @@ import {
   Moon, Sun, Home as HomeIcon, ShieldCheck, FolderOpen, LayoutGrid, Plus, LogOut,
   ChevronLeft, ChevronsLeft, ChevronsRight, UploadCloud, MessagesSquare,
   ListChecks, Layers, TrendingUp, BarChart3, LayoutDashboard, BookOpen, PenLine, Compass,
+  Menu, X, User as UserIcon,
 } from 'lucide-react';
 import api from './api/client.js';
 import Home from './pages/Home.jsx';
@@ -247,7 +248,7 @@ function Sidebar({ collapsed, setCollapsed }) {
   );
 }
 
-function AdminBar() {
+function AdminBar({ onMenu }) {
   const nav = useNavigate();
   const location = useLocation();
   const [dark, toggle] = useDark();
@@ -275,7 +276,10 @@ function AdminBar() {
   return (
     <header className="navbar">
       <div className="container flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <button onClick={onMenu} title="Open menu" aria-label="Open menu" className="rounded-lg p-2 text-text2 transition hover:bg-surface hover:text-text lg:hidden">
+            <Menu size={20} />
+          </button>
           <Link to="/" className="flex min-w-0 items-center gap-1.5">
             <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#4f46e5] text-white">
               <svg width="13" height="13" viewBox="0 0 60 60" fill="none" stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.6" /></svg>
@@ -317,7 +321,7 @@ function AdminBar() {
   );
 }
 
-function Topbar({ collapsed }) {
+function Topbar({ collapsed, onMenu }) {
   const nav = useNavigate();
   const location = useLocation();
   const [dark, toggle] = useDark();
@@ -347,13 +351,16 @@ function Topbar({ collapsed }) {
   return (
     <header className={`navbar ${isAdminUser ? '' : collapsed ? 'lg:left-16' : 'lg:left-64'}`}>
       <div className="container flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <button onClick={onMenu} title="Open menu" aria-label="Open menu" className="rounded-lg p-2 text-text2 transition hover:bg-surface hover:text-text lg:hidden">
+            <Menu size={20} />
+          </button>
           <Link to="/" className="flex items-center gap-2 lg:hidden">
             <img src="/logo-icon.svg" alt="AI Study Companion" className="h-9 w-9" />
-            <img src="/logo-light.svg" alt="AI Study Companion" className="h-8 w-auto dark:hidden" />
-            <img src="/logo-dark.svg" alt="AI Study Companion" className="hidden h-8 w-auto dark:block" />
+            <img src="/logo-light.svg" alt="AI Study Companion" className="hidden h-8 w-auto min-[420px]:block dark:hidden" />
+            <img src="/logo-dark.svg" alt="AI Study Companion" className="hidden h-8 w-auto min-[420px]:dark:block" />
           </Link>
-          <nav className="flex min-w-0 items-center gap-1.5 truncate text-sm">
+          <nav className="hidden min-w-0 items-center gap-1.5 truncate text-sm min-[560px]:flex">
             {crumbs.length ? crumbs.map((c, i) => (
               <span key={i} className="flex items-center gap-1.5 truncate">
                 {i > 0 && <span className="text-text3">/</span>}
@@ -395,11 +402,102 @@ function Topbar({ collapsed }) {
   );
 }
 
+// Mobile slide-over nav (the desktop Sidebar is `hidden lg:flex`).
+// Gives phones a hamburger menu: main sections + per-project tools when inside a project.
+function MobileDrawer({ open, onClose }) {
+  const nav = useNavigate();
+  const location = useLocation();
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const onProject = location.pathname.startsWith('/project/');
+  const pid = onProject ? location.pathname.split('/')[2] : null;
+  const activeTab = new URLSearchParams(location.search).get('tab') || 'overview';
+
+  useEffect(() => {
+    onClose?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [open ]);
+
+  if (!user) return null;
+
+  function go(to) {
+    onClose?.();
+    nav(to);
+  }
+
+  function signOut() {
+    localStorage.clear();
+    onClose?.();
+    nav('/login');
+  }
+
+  const mainLinks = [
+    { to: '/', label: 'Home', icon: HomeIcon, active: location.pathname === '/' },
+    ...(user.isAdmin ? [] : [
+      { to: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard, active: location.pathname === '/dashboard' },
+      { to: '/analytics', label: 'Global Analytics', icon: BarChart3, active: location.pathname === '/analytics' },
+    ]),
+    ...(user.isAdmin ? [{ to: '/admin', label: 'Admin Dashboard', icon: ShieldCheck, active: location.pathname === '/admin' }] : []),
+    { to: '/profile', label: 'Profile & settings', icon: UserIcon, active: location.pathname === '/profile' },
+  ];
+
+  return (
+    <div className={`fixed inset-0 z-[200] lg:hidden ${open ? '' : 'pointer-events-none'}`} aria-hidden={!open}>
+      <div onClick={onClose} className={`absolute inset-0 bg-black/40 transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`} />
+      <div className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-bg2 shadow-xl transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex h-16 items-center justify-between border-b border-border px-4">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-[#4f46e5] text-white">
+              <svg width="13" height="13" viewBox="0 0 60 60" fill="none" stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round"><path d="M10 15 C17 11 25 11 30 15.5 C35 11 43 11 50 15 L50 46 C43 42 35 42 30 46.5 C25 42 17 42 10 46 Z" strokeWidth="5" /><line x1="30" y1="15.5" x2="30" y2="46.5" strokeWidth="3.6" /></svg>
+            </span>
+            <span className="text-[14px] font-bold">AI Study Companion</span>
+          </span>
+          <button onClick={onClose} title="Close menu" aria-label="Close menu" className="rounded-lg p-2 text-text2 hover:bg-surface hover:text-text"><X size={18} /></button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <div className="space-y-1">
+            {mainLinks.map((l) => (
+              <button key={l.to + l.label} onClick={() => go(l.to)} className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${l.active ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+                <l.icon size={17} className="shrink-0" /> {l.label}
+              </button>
+            ))}
+          </div>
+          {onProject && !user.isAdmin && (
+            <>
+              <p className="px-3 pb-1 pt-4 text-[11px] font-bold uppercase tracking-widest text-text3">This project</p>
+              <div className="space-y-1">
+                {TOOLS.map((t) => {
+                  const active = activeTab === t.tab;
+                  return (
+                    <button key={t.tab} onClick={() => go(`/project/${pid}?tab=${t.tab}`)} className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${active ? 'bg-accent/10 text-accent' : 'text-text2 hover:bg-surface hover:text-text'}`}>
+                      <t.icon size={17} className="shrink-0" /> {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="border-t border-border p-3">
+          <button onClick={signOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-text2 transition hover:bg-surface hover:text-text">
+            <LogOut size={17} className="shrink-0" /> Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const location = useLocation();
   const isAuth = ['/login', '/forgot-password', '/reset-password'].includes(location.pathname);
   const [crumbs, setCrumbs] = useState([]);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const adminView = !isAuth && !!JSON.parse(localStorage.getItem('user') || 'null')?.isAdmin;
   const isTutorTab = location.pathname.startsWith('/project/') && new URLSearchParams(location.search).get('tab') === 'tutor';
   // Project workspace has its own sidebar footer — the global tagline stays off it.
@@ -407,7 +505,8 @@ export default function App() {
     <CrumbCtx.Provider value={{ crumbs, setCrumbs }}>
       <div className="min-h-screen bg-bg">
         {!isAuth && !adminView && <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />}
-        {!isAuth && (adminView ? <AdminBar /> : <Topbar collapsed={collapsed} />)}
+        {!isAuth && <MobileDrawer open={mobileOpen} onClose={() => setMobileOpen(false)} />}
+        {!isAuth && (adminView ? <AdminBar onMenu={() => setMobileOpen(true)} /> : <Topbar collapsed={collapsed} onMenu={() => setMobileOpen(true)} />)}
         <div className={isAuth || adminView ? '' : collapsed ? 'lg:pl-16' : 'lg:pl-64'}>
           <main className={isAuth ? '' : 'page'}>
             <Routes>

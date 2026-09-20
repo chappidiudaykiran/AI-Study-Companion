@@ -48,7 +48,7 @@ grading (`covered`/`missing`/feedback) → Mastery update → mistake-pattern de
 | Frontend | React 18 + Vite, Tailwind v3, Recharts, KaTeX, lucide-react |
 | Backend | Node 22 + Express 4 + Mongoose 8 |
 | Database | MongoDB Atlas (17 collections) |
-| AI | Gemini 2.5 Flash / InceptionLabs Mercury-2.5 (switchable), `text-embedding-004` |
+| AI | InceptionLabs Mercury-2.5, `text-embedding-004` |
 | Jobs | `jobs` collection + node-cron (states, retries ×3, idempotency, orphan recovery) |
 | Mail | Nodemailer (SMTP, forgot/reset + dev-console fallback) |
 | Deploy | Railway (API) + Vercel (web) |

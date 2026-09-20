@@ -39,9 +39,9 @@ export default function StudyCard({
       onClick={onOpen}
     >
       <div className={`h-1.5 bg-gradient-to-r ${theme.bar}`} />
-      <div className="flex h-full flex-1 flex-col p-6">
-        <div className="flex items-center gap-4">
-          <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold ${theme.soft}`}>
+      <div className="flex h-full flex-1 flex-col p-4 sm:p-6">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold sm:h-12 sm:w-12 sm:text-lg ${theme.soft}`}>
             {(title || 'S')[0].toUpperCase()}
           </span>
           <div className="min-w-0 flex-1">
@@ -65,9 +65,10 @@ export default function StudyCard({
             <span className="text-[13px] font-bold text-text">{progress}%</span>
           </div>
         )}
-        <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-4">
-          <span className="text-[13px] text-text2">{meta}</span>
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition-all group-hover:gap-2.5">
+        <div className="min-h-4 flex-1" />
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-4">
+          <span className="min-w-0 truncate text-[13px] text-text2">{meta}</span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-accent transition-all group-hover:gap-2.5">
             {openLabel}
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
           </span>
